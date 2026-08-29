@@ -1,18 +1,37 @@
+# Dependencies
 node_modules/
+
+# Build output
 dist/
 dist-electron/
 dist-electron-build/
-agents/
-.history/
-.claude/
-.idea/
+
+# Facebook E2EE Go bridge (built on demand via scripts/build-bridge-e2ee.js)
+src/bridge-e2ee/build/
+src/bridge-e2ee/meta/
+
+# Yarn 4 (nodeLinker: node-modules — no .pnp.* files are ever generated)
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# Env / secrets
 .env
 .env.local
 .env.production
-*.log
-.DS_Store
-tmp/
-docs/
+*.local.json
+
+# Editors / OS
+.idea/
 .vscode/
+.DS_Store
+.history/
+
+# Logs & misc build byproducts
+*.log
 *.gz
 *.exe
+tmp/
