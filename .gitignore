@@ -14,3 +14,4 @@ agents/
 tmp/
 docs/
 .vscode/
+*.gz

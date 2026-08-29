@@ -18,12 +18,12 @@
   "homepage": "https://deplaoapp.com",
   "license": "MIT",
   "dependencies": {
+    "@ngrok/ngrok": "^1.7.0",
     "axios": "^1.7.8",
     "axios-cookiejar-support": "^5.0.3",
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.9.0",
     "bytenode": "^1.5.7",
-    "@ngrok/ngrok": "^1.7.0",
     "cloudflared": "^0.7.1",
     "dompurify": "^3.4.1",
     "electron-store": "^8.2.0",
@@ -205,5 +205,6 @@
     "deb": {
       "maintainer": "babyvibe <babyvibe@users.noreply.github.com>"
     }
-  }
+  },
+  "packageManager": "yarn@4.18.0"
 }
