@@ -1,0 +1,28 @@
+# Build output
+dist/
+dist-electron/
+dist-electron-build/
+landing/dist/
+
+# Dependencies
+node_modules/
+landing/node_modules/
+.yarn/
+.pnp.*
+
+# Lockfiles (huge, rarely useful for an agent to read in full)
+package-lock.json
+yarn.lock
+landing/package-lock.json
+
+# Large generated/vendored data
+src/configs/hanhchinhVN/xa_phuong.json
+src/configs/hanhchinhVN/quan_huyen.json
+src/bridge-e2ee/build/
+src/bridge-e2ee/meta/
+
+# Logs and local env
+*.log
+.env
+.env.local
+*.local.json
