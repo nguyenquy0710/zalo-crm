@@ -86,6 +86,10 @@ npm run rebuild:native   # fetch prebuilt better-sqlite3 binary matching the Ele
 - Facebook E2EE (`src/bridge-e2ee/`) is an optional, gracefully-degrading Go subprocess bridge (JSON-RPC over stdio) — its absence disables 1:1 encrypted chat only; group messaging via MQTT is unaffected.
 - `src/services/tracking/TrackingService.ts` sends anonymous license-renewal telemetry to `deplaoapp.com` — it is documented as PII-free by design; preserve that invariant if you touch this file.
 
+## Runtime scratch space (`.rtk/`)
+
+`.rtk/` is a gitignored, repo-local scratch directory for throwaway runtime/debug artifacts produced while working in this codebase (e.g. a captured IPC payload while investigating a bug). It has no role in the shipped app — the app's real runtime data (SQLite DB, media cache, workspace config) lives in Electron's `app.getPath('userData')`, outside the repo, per `DatabaseService`/`FileStorageService`. See [.rtk-usage.md](.rtk-usage.md) for what belongs there. Note: unrelated to the `rtk` (Rust Token Killer) CLI some contributors may have installed globally — same name, different tool.
+
 ## Coding conventions
 
 - Service singletons: `class XService { private static instance; static getInstance() {...} }`. Multi-account services (Zalo/Facebook) additionally keep `static Map<string, Service>` keyed by account id.
