@@ -410,7 +410,7 @@ function hasUsableTelegramQuoteData(value?: string | null): boolean {
   }
 }
 
-/** Convert the aggregate MTProto reaction payload into Deplao's display model.
+/** Convert the aggregate MTProto reaction payload into ZaloCRM's display model.
  * Telegram only provides identities for a recent subset of reactors, so counts
  * remain authoritative while the users map contains only identities Telegram
  * actually returned (including the current account when marked as my). */

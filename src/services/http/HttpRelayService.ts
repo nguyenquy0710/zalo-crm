@@ -693,7 +693,31 @@ class HttpRelayService {
         });
     }
 
+    /**
+     * Channel chỉ Boss mới được thực thi — không có permission module nào có thể cấp
+     * cho employee, vì chúng thay đổi trạng thái/vận hành của CHÍNH Boss server
+     * (đổi mode tiến trình, chuyển/xoá workspace, tắt relay/tunnel của Boss, tạo/xoá
+     * nhân viên khác...), không phải hành động thay mặt employee trên dữ liệu của họ.
+     * Trước đây channelToModule() trả về null cho các prefix này → executeProxyAction
+     * không check quyền gì cả → bất kỳ employee nào cũng gọi được qua /api/proxy/action.
+     */
+    private static BOSS_ONLY_CHANNELS = new Set([
+        'employee:create', 'employee:update', 'employee:delete',
+        'employee:setPermissions', 'employee:assignAccounts',
+        'employee:setMode', 'employee:connectToBoss', 'employee:disconnectFromBoss',
+    ]);
+    private static BOSS_ONLY_PREFIXES = ['workspace:', 'relay:'];
+
+    private isBossOnlyChannel(channel: string): boolean {
+        if (HttpRelayService.BOSS_ONLY_CHANNELS.has(channel)) return true;
+        return HttpRelayService.BOSS_ONLY_PREFIXES.some((p) => channel.startsWith(p));
+    }
+
     private async executeProxyAction(employee: RegisteredEmployee, channel: string, params: any): Promise<any> {
+        if (this.isBossOnlyChannel(channel)) {
+            return { success: false, error: 'Hành động này chỉ Boss mới có quyền thực hiện' };
+        }
+
         let zaloId = params?.zaloId || params?.zalo_id || '';
 
         if (!zaloId && employee.assigned_accounts.length > 0) {
@@ -2708,6 +2732,12 @@ class HttpRelayService {
 
     private channelToModule(channel: string): string | null {
         if (channel.startsWith('zalo:')) return 'chat';
+        // [nqdev-security-fix] fb:/telegram:/telegramUser:/login: đều là hành động gửi/quản lý tin
+        // nhắn-tài khoản như zalo: nhưng trước đây KHÔNG được gate quyền — bổ sung để nhất quán.
+        if (channel.startsWith('fb:')) return 'chat';
+        if (channel.startsWith('telegram:')) return 'chat';
+        if (channel.startsWith('telegramUser:')) return 'chat';
+        if (channel.startsWith('login:')) return 'chat';
         if (channel.startsWith('crm:')) return 'crm';
         if (channel.startsWith('workflow:')) return 'workflow';
         if (channel.startsWith('integration:')) return 'integration';

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ipc from '@/lib/ipc';
 import { DataAccessor } from '@/lib/data/DataAccessor';
 
-const SUPPORT_GITHUB_URL = 'https://github.com/babyvibe/deplao-builder';
+const SUPPORT_GITHUB_URL = 'https://github.com/nguyenquy0710/zalo-crm';
 import { useAppStore, FONT_SCALE_MIN, FONT_SCALE_MAX, FONT_SCALE_STEP } from '@/store/appStore';
 import { useAccountStore } from '@/store/accountStore';
 import { useUpdateStore } from '@/store/updateStore';
@@ -67,7 +67,7 @@ export default function TopBar() {
   // Load saved password từ localStorage
   useEffect(() => {
     try {
-      const raw = localStorage.getItem('deplao_employee_password');
+      const raw = localStorage.getItem('zalocrm_employee_password');
       if (raw) setSavedPassword(atob(raw));
     } catch { /* ignore */ }
   }, []);
@@ -75,7 +75,7 @@ export default function TopBar() {
   // Save password khi kết nối thành công
   const savePassword = useCallback((password: string) => {
     try {
-      localStorage.setItem('deplao_employee_password', btoa(password));
+      localStorage.setItem('zalocrm_employee_password', btoa(password));
       setSavedPassword(password);
     } catch { /* ignore */ }
   }, []);
@@ -389,7 +389,7 @@ export default function TopBar() {
       style={{ WebkitAppRegion: 'drag' } as any}
     >
       <div className="flex items-center gap-2 px-3" style={{ WebkitAppRegion: 'no-drag', paddingLeft: isMac ? 72 : 12 } as any}>
-        <span className="text-blue-400 font-bold text-sm">Deplao</span>
+        <span className="text-blue-400 font-bold text-sm">ZaloCRM</span>
         <span className="text-gray-400 text-xs">v{APP_VERSION}</span>
         {updateInfo && (updateStatus === 'available' || updateStatus === 'downloading' || updateStatus === 'downloaded') && (
           <button onClick={openUpdatePopup}
@@ -611,7 +611,7 @@ export default function TopBar() {
         <button
           onClick={() => ipc.shell?.openExternal(SUPPORT_GITHUB_URL)}
           className="w-9 h-9 flex items-center justify-center text-gray-400 hover:bg-gray-700 hover:text-yellow-400 transition-colors relative group/gh"
-          title={"Star Deplao trên GitHub\nDự án mã nguồn mở - Ủng hộ team bằng cách ghé thăm và thả sao nhé!"}
+          title={"Star ZaloCRM trên GitHub\nDự án mã nguồn mở - Ủng hộ team bằng cách ghé thăm và thả sao nhé!"}
         >
           <span className="relative">
             {/* GitHub icon */}
@@ -781,7 +781,7 @@ export default function TopBar() {
                       <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse flex-shrink-0" />
                     )}
                   </div>
-                  <p className="text-[10px] text-gray-400">Giới thiệu Deplao Premium - Nhận hoa hồng trọn đời</p>
+                  <p className="text-[10px] text-gray-400">Giới thiệu ZaloCRM Premium - Nhận hoa hồng trọn đời</p>
                 </div>
               </button>
 
@@ -789,7 +789,7 @@ export default function TopBar() {
               <button
                 onClick={() => {
                   setMoreOpen(false);
-                  ipc.shell?.openExternal('https://fb.com/deplaoapp');
+                  ipc.shell?.openExternal('https://fb.com/zalocrmapp');
                 }}
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 hover:text-blue-400 transition-colors text-left"
               >

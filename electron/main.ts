@@ -38,39 +38,19 @@ import FileStorageService from '../src/services/file/FileStorageService';
 import TrackingService from '../src/services/tracking/TrackingService';
 import { SHOW_DEV_TOOLS, IS_DEV_BUILD } from '../src/configs/BuildConfig';
 import Logger from '../src/utils/Logger';
+import {
+  decryptCookiesForStartup,
+  startupAllWorkspaces,
+  reconnectAllTelegramAccounts,
+  startTelegramBotHealthCheck,
+} from './startupTasks';
 
 // CHANNEL constant — same as src/ui/lib/channelHelper.ts (electron build excludes src/ui/)
 const CHANNEL = { ZALO: 'zalo', FACEBOOK: 'facebook', TELEGRAM_BOT: 'telegram_bot', TELEGRAM_USER: 'telegram_user' } as const;
 
-/**
- * Decrypt cookies from DB — mirror of DatabaseService.decryptCookies().
- * startupAllWorkspaces reads raw rows via queryOtherDb, so we must decrypt
- * before passing to loginService.connectUser().
- */
-function decryptCookiesForStartup(encrypted: string): string {
-  if (!encrypted) return encrypted;
-  const trimmed = encrypted.trimStart();
-  if (trimmed.startsWith('[') || trimmed.startsWith('{')) return encrypted;
-  if (/^\d+:[A-Za-z0-9_-]+$/.test(trimmed)) return encrypted;
-
-  // Try safeStorage — works for any encrypted format (DPAPI, U2Fsd, etc.)
-  // GramJS sessions are NOT encrypted → safeStorage.decryptString throws → return as-is
-  try {
-    if (safeStorage.isEncryptionAvailable()) {
-      const decrypted = safeStorage.decryptString(Buffer.from(encrypted, 'base64'));
-      if (decrypted.startsWith('[') || decrypted.startsWith('{')) {
-        JSON.parse(decrypted); // validate
-        return decrypted;
-      }
-      return decrypted;
-    }
-  } catch {
-    // safeStorage failed → likely GramJS session or corrupted data → return as-is
-  }
-  return encrypted;
-}
-
 const isDev = IS_DEV_BUILD;
+// Docker/server deployment: no display, no tray, no auto-update, no protocol registration.
+const isHeadless = process.env.ZALOCRM_HEADLESS === '1';
 let isQuitting = false;
 
 // ─── Hardware acceleration ────────────────────────────────────────────────────
@@ -144,20 +124,20 @@ app.commandLine.appendSwitch('lang', 'vi-VN');
 app.commandLine.appendSwitch('accept-lang', 'vi-VN,vi;q=0.9');
 
 // Đặt tên app (hiện trên taskbar, tray, macOS dock)
-app.setName('Deplao');
+app.setName('ZaloCRM');
 
 // Windows: đặt AppUserModelId để taskbar/notification hiển thị đúng icon & tên
 // Dev: AUMID unique mỗi lần chạy → Windows tạo icon cache mới → hiện đúng icon
 // Production: AUMID cố định (khớp appId electron-builder, exe đã embed icon qua afterPack)
 if (process.platform === 'win32') {
-  app.setAppUserModelId(isDev ? `com.Deplao.dev.${Date.now()}` : 'com.Deplao.app');
+  app.setAppUserModelId(isDev ? `com.ZaloCRM.dev.${Date.now()}` : 'com.ZaloCRM.app');
 }
 
 // ─── Register custom protocol BEFORE app ready (required by Electron) ─────────
 // local-media://abs-path  →  serve file from absolute path on disk
 // Usage in renderer: local-media:///D:/path/to/file.jpg
 //
-// deplao://openChat?accountId=xxx&threadId=yyy&threadType=0&channel=zalo
+// zalocrm://openChat?accountId=xxx&threadId=yyy&threadType=0&channel=zalo
 //   → deep link: mở app + active đúng hội thoại
 protocol.registerSchemesAsPrivileged([
   {
@@ -171,7 +151,7 @@ protocol.registerSchemesAsPrivileged([
     },
   },
   {
-    scheme: 'deplao',
+    scheme: 'zalocrm',
     privileges: {
       secure: true,
       bypassCSP: true,
@@ -208,7 +188,7 @@ function createWindow() {
     height: 800,
     minWidth: 900,
     minHeight: 600,
-    title: 'Deplao',
+    title: 'ZaloCRM',
     // Windows: frameless → custom title bar
     // macOS: hiddenInset → ẩn title bar, giữ traffic light buttons
     frame: isMac,
@@ -257,7 +237,7 @@ function createWindow() {
     if (cachedNormalIcon && !cachedNormalIcon.isEmpty()) {
       mainWindow?.setIcon(cachedNormalIcon);
     }
-    mainWindow?.show();
+    if (!isHeadless) mainWindow?.show();
   });
 
   // ── Renderer crash recovery ────────────────────────────────────────────
@@ -372,7 +352,7 @@ function createWindow() {
     }
 
     // Parse deep link URL từ command line (Windows protocol handler)
-    const deepLinkUrl = argv.find((arg: string) => arg.startsWith('deplao://'));
+    const deepLinkUrl = argv.find((arg: string) => arg.startsWith('zalocrm://'));
     if (deepLinkUrl) {
       handleDeepLink(deepLinkUrl);
     }
@@ -380,7 +360,7 @@ function createWindow() {
 
   // macOS: open-url event khi click deep link
   app.on('open-url', (_event, url) => {
-    if (url.startsWith('deplao://')) {
+    if (url.startsWith('zalocrm://')) {
       handleDeepLink(url);
     }
   });
@@ -405,7 +385,7 @@ function createTray() {
 
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: 'Mở Deplao',
+      label: 'Mở ZaloCRM',
       click: () => { mainWindow?.show(); mainWindow?.focus(); },
     },
     { type: 'separator' },
@@ -422,7 +402,7 @@ function createTray() {
     },
   ]);
 
-  tray.setToolTip('Deplao');
+  tray.setToolTip('ZaloCRM');
   tray.setContextMenu(contextMenu);
 
   // Double-click tray → mở app
@@ -442,7 +422,7 @@ function createTray() {
 function showTrayNotification() {
   if (!Notification.isSupported()) return;
   const notif = new Notification({
-    title: 'Deplao đang chạy ngầm',
+    title: 'ZaloCRM đang chạy ngầm',
     body: 'Ứng dụng vẫn đang hoạt động và nhận tin nhắn bình thường. Nhấn vào biểu tượng tray để mở lại.',
     silent: false,
   });
@@ -561,7 +541,7 @@ function registerWindowControls() {
             tray?.setImage(cachedDotIcon);
           }
         }
-        tray?.setToolTip(`Deplao - ${count} tin chưa đọc`);
+        tray?.setToolTip(`ZaloCRM - ${count} tin chưa đọc`);
       } else {
         if (currentIconIsDot) {
           currentIconIsDot = false;
@@ -570,7 +550,7 @@ function registerWindowControls() {
             tray?.setImage(cachedNormalIcon);
           }
         }
-        tray?.setToolTip('Deplao');
+        tray?.setToolTip('ZaloCRM');
       }
     } else {
       try { app.setBadgeCount(count > 0 ? count : 0); } catch {}
@@ -617,10 +597,10 @@ function registerWindowControls() {
 }
 
 /**
- * Xử lý deep link URL từ custom protocol deplao://
+ * Xử lý deep link URL từ custom protocol zalocrm://
  *
  * Định dạng:
- *   deplao://openChat?accountId=xxx&threadId=yyy&threadType=0&channel=zalo
+ *   zalocrm://openChat?accountId=xxx&threadId=yyy&threadType=0&channel=zalo
  *
  * Hỗ trợ thêm action mới bằng cách mở rộng switch(action) bên dưới.
  */
@@ -671,162 +651,6 @@ function handleDeepLink(url: string): void {
   } catch (err: any) {
     console.error('[handleDeepLink] Failed to parse URL:', url, err.message);
   }
-}
-
-/**
- * Auto-reconnect tất cả Telegram accounts khi app khởi động.
- * Tương tự reconnectAllFBAccounts nhưng cho Telegram Bot + User.
- */
-async function reconnectAllTelegramAccounts(): Promise<void> {
-  try {
-    const db = DatabaseService.getInstance();
-    if (!db) return;
-
-    const accounts = db.getAccounts();
-    const telegramAccounts = accounts.filter((a: any) => {
-      const ch = a.channel || 'zalo';
-      return (ch === 'telegram_bot' || ch === 'telegram_user') && a.is_active;
-    });
-
-    if (telegramAccounts.length === 0) return;
-
-    console.log(`[main] Auto-reconnecting ${telegramAccounts.length} Telegram account(s)...`);
-
-    for (const acc of telegramAccounts) {
-      const channel = acc.channel || 'zalo';
-      try {
-        if (channel === 'telegram_bot') {
-          const { startBot } = require('../src/services/telegram/TelegramBotChannelService');
-          startBot({
-            accountId: acc.zalo_id,
-            botToken: acc.cookies || '',
-            botUsername: (acc as any).username || '',
-            botFirstName: acc.full_name || '',
-          });
-          console.log(`[main] Telegram Bot ${acc.zalo_id} polling started`);
-        } else if (channel === 'telegram_user') {
-          const stringSession = acc.cookies || '';
-          if (!stringSession) {
-            console.warn(`[main] Telegram User ${acc.zalo_id} has no session - skipping`);
-            continue;
-          }
-          // Kiểm tra session hợp lệ (GramJS session là base64 decode thành JSON)
-          // Nếu session bắt đầu bằng "U2Fsd" = encrypted blob chưa decrypt được → skip
-          if (stringSession.trimStart().startsWith('U2Fsd')) {
-            console.warn(`[main] Telegram User ${acc.zalo_id} session is encrypted blob (decrypt failed) - needs re-login`);
-            continue;
-          }
-          const { startListener } = require('../src/services/telegram/TelegramUserListener');
-          const result = await startListener({
-            accountId: acc.zalo_id,
-            phoneNumber: acc.phone || '',
-            stringSession,
-          });
-          if (result?.success) {
-            console.log(`[main] Telegram User ${acc.zalo_id} listener started`);
-          } else {
-            console.warn(`[main] Telegram User ${acc.zalo_id} failed: ${result?.error}`);
-          }
-        }
-      } catch (err: any) {
-        console.warn(`[main] Failed to reconnect Telegram ${acc.zalo_id}: ${err.message}`);
-      }
-    }
-  } catch (err: any) {
-    console.error('[main] reconnectAllTelegramAccounts error:', err.message);
-  }
-}
-
-/**
- * Periodic health check for Telegram bots.
- * Checks if registered bots are still polling; reconnects if not.
- * Runs every 60 seconds.
- */
-function startTelegramBotHealthCheck(): void {
-  setInterval(() => {
-    try {
-      const { isBotPolling, tryReconnectBot, getActiveBots } = require('../src/services/telegram/TelegramBotChannelService');
-      const activeBots = getActiveBots();
-      for (const bot of activeBots) {
-        if (!isBotPolling(bot.accountId)) {
-          console.log(`[main] Telegram Bot ${bot.accountId} not polling — attempting reconnect`);
-          tryReconnectBot(bot.accountId);
-        }
-      }
-    } catch {}
-  }, 60_000);
-}
-
-/**
- * Ordered startup: scan all workspaces, start relays + connect Zalo for local workspaces FIRST,
- * THEN connect remote/employee workspaces. Ensures Boss is ready before employees connect.
- */
-async function startupAllWorkspaces(): Promise<void> {
-  const wsMgr = WorkspaceManager.getInstance();
-  const db = DatabaseService.getInstance();
-  const allWorkspaces = wsMgr.listWorkspaces();
-  const localWorkspaces = allWorkspaces.filter(w => w.type === 'local');
-  const remoteWorkspaces = allWorkspaces.filter(w => w.type === 'remote' && w.autoConnect);
-
-  // ── Phase 1: Start relay servers for ALL local workspaces with relayAutoStart ──
-  for (const ws of localWorkspaces) {
-    if (!ws.relayAutoStart) continue;
-    try {
-      const HttpRelayService = (await import('../src/services/http/HttpRelayService')).default;
-      const relay = HttpRelayService.getInstance();
-      const port = ws.relayPort || 9900;
-      const res = await relay.start(port); // start() is idempotent - skips if already running
-      if (res?.success) {
-        console.log(`[startupAllWorkspaces] Relay started on port ${res.port} for workspace "${ws.name}"`);
-      }
-    } catch (err: any) {
-      console.error(`[startupAllWorkspaces] Relay start failed for "${ws.name}":`, err.message);
-    }
-  }
-
-  // ── Phase 2: Auto-connect Zalo accounts for ALL local workspaces ──
-  const LoginService = (await import('../src/services/login/LoginService')).default;
-  const loginService = new LoginService();
-  const connectedZaloIds = new Set<string>();
-
-  for (const ws of localWorkspaces) {
-    try {
-      const dbPath = wsMgr.resolveDbPath(ws.dbPath || 'deplao-tool.db');
-      if (!dbPath || !require('fs').existsSync(dbPath)) continue;
-
-      // Read accounts from this workspace's DB (without switching active DB)
-      const accounts = db.queryOtherDb<any[]>(dbPath, (otherDb) => {
-        const rows = otherDb.prepare("SELECT * FROM accounts WHERE is_active = 1 AND (channel = 'zalo' OR channel IS NULL)").all();
-        return rows;
-      });
-
-      for (const acc of accounts) {
-        if (connectedZaloIds.has(acc.zalo_id)) continue; // already connected
-        try {
-          const decryptedCookies = decryptCookiesForStartup(acc.cookies || '');
-          console.log(`[startupAllWorkspaces] ${acc.zalo_id}: raw prefix="${(acc.cookies || '').substring(0, 20)}" → decrypted prefix="${decryptedCookies.substring(0, 40)}" len=${decryptedCookies.length}`);
-          await loginService.connectUser({
-            cookies: decryptedCookies,
-            imei: acc.imei || '',
-            userAgent: acc.user_agent || acc.userAgent || '',
-          });
-          connectedZaloIds.add(acc.zalo_id);
-          console.log(`[startupAllWorkspaces] Connected Zalo ${acc.zalo_id} from workspace "${ws.name}"`);
-        } catch (err: any) {
-          console.warn(`[startupAllWorkspaces] Failed to connect ${acc.zalo_id} from "${ws.name}":`, err.message);
-        }
-      }
-    } catch (err: any) {
-      console.warn(`[startupAllWorkspaces] Failed to load accounts from "${ws.name}":`, err.message);
-    }
-  }
-
-  // ── Phase 3: Connect remote/employee workspaces (Boss must be ready first) ──
-  if (remoteWorkspaces.length > 0) {
-    console.log(`[startupAllWorkspaces] Connecting ${remoteWorkspaces.length} remote workspace(s)...`);
-    await HttpConnectionManager.getInstance().connectAutoWorkspaces();
-  }
-  HttpConnectionManager.getInstance().startHealthCheck(60_000);
 }
 
 app.whenReady().then(async () => {
@@ -1050,27 +874,27 @@ app.whenReady().then(async () => {
 
   loadIcons();
 
-  // ── Register deplao:// as default protocol client ─────────────────────
-  // Cho phép OS mở app khi click link deplao:// trong trình duyệt
+  // ── Register zalocrm:// as default protocol client ─────────────────────
+  // Cho phép OS mở app khi click link zalocrm:// trong trình duyệt
   //
   // ⚠️ Production: app đã đóng gói → setAsDefaultProtocolClient hoạt động đúng.
   // ⚠️ Development: KHÔNG gọi setAsDefaultProtocolClient - dùng manual reg script
   //    (xem hướng dẫn trong agents/references/deep-link-feature.md)
-  if (app.isPackaged) {
-    if (!app.isDefaultProtocolClient('deplao')) {
-      app.setAsDefaultProtocolClient('deplao');
+  if (app.isPackaged && !isHeadless) {
+    if (!app.isDefaultProtocolClient('zalocrm')) {
+      app.setAsDefaultProtocolClient('zalocrm');
     }
   }
 
   createWindow();
-  createTray();
+  if (!isHeadless) createTray();
   registerWindowControls();
 
   // ── Handle deep link từ initial launch (first instance) ──────────
-  // Khi click deplao:// link lần đầu:
+  // Khi click zalocrm:// link lần đầu:
   //   - Production đúng: URL nằm ở process.argv[1] hoặc sau dấu `--`
   //   - Dev / sai config: Electron nhận URL ở argv[1] thay vì main script path
-  const initialDeepLink = process.argv.find((arg) => arg.startsWith('deplao://'));
+  const initialDeepLink = process.argv.find((arg) => arg.startsWith('zalocrm://'));
   if (initialDeepLink) {
     setTimeout(() => handleDeepLink(initialDeepLink), 3000);
   }
@@ -1183,8 +1007,8 @@ app.whenReady().then(async () => {
   });
   console.log('[MediaCleanup] Scheduler initialized - runs daily at 3:00 AM');
 
-  // Check for updates — đợi renderer sẵn sàng rồi mới check
-  if (!isDev) {
+  // Check for updates — đợi renderer sẵn sàng rồi mới check (không áp dụng cho headless/Docker)
+  if (!isDev && !isHeadless) {
     autoUpdater.autoDownload = false;
     autoUpdater.autoInstallOnAppQuit = false;
 

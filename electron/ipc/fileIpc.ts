@@ -203,7 +203,7 @@ export function registerFileIpc() {
     /** Lưu base64 data thành file tạm để gửi ảnh clipboard */
     ipcMain.handle('file:saveTempBlob', async (_event, { base64, ext, filename }: { base64: string; ext: string; filename?: string }) => {
         try {
-            const tmpDir = path.join(app.getPath('temp'), 'deplao-clipboard');
+            const tmpDir = path.join(app.getPath('temp'), 'zalocrm-clipboard');
             if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
             // Preserve original filename if provided, otherwise generate random name
             const safeName = filename
@@ -260,7 +260,7 @@ export function registerFileIpc() {
             const resolvedVideoPath = FileStorageService.resolveAbsolutePath(videoPath);
             if (!fs.existsSync(resolvedVideoPath)) return { success: false, error: 'File not found' };
 
-            const tmpDir = path.join(app.getPath('temp'), 'deplao-videometa');
+            const tmpDir = path.join(app.getPath('temp'), 'zalocrm-videometa');
             if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
             const thumbPath = path.join(tmpDir, `thumb_${Date.now()}.jpg`);
 

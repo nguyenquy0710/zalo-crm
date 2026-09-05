@@ -5,15 +5,15 @@
  * App chỉ gọi API, không chứa logic business.
  *
  * API endpoints:
- *   POST https://deplaoapp.com/api/scan/premium-status  → kiểm tra premium
- *   POST https://deplaoapp.com/api/scan/group            → quét thành viên nhóm
- *   POST https://deplaoapp.com/api/payment/create-qr     → tạo QR thanh toán
- *   POST https://deplaoapp.com/api/payment/check-status  → kiểm tra trạng thái TT
- *   POST https://deplaoapp.com/api/shared-groups/submit   → chia sẻ nhóm
- *   GET  https://deplaoapp.com/api/shared-groups/list     → danh sách nhóm chung
+ *   POST https://zalo-crm.quyit.id.vn/api/scan/premium-status  → kiểm tra premium
+ *   POST https://zalo-crm.quyit.id.vn/api/scan/group            → quét thành viên nhóm
+ *   POST https://zalo-crm.quyit.id.vn/api/payment/create-qr     → tạo QR thanh toán
+ *   POST https://zalo-crm.quyit.id.vn/api/payment/check-status  → kiểm tra trạng thái TT
+ *   POST https://zalo-crm.quyit.id.vn/api/shared-groups/submit   → chia sẻ nhóm
+ *   GET  https://zalo-crm.quyit.id.vn/api/shared-groups/list     → danh sách nhóm chung
  */
 
-const BACKEND_URL = 'https://deplaoapp.com';
+const BACKEND_URL = 'https://zalo-crm.quyit.id.vn';
 const SECRET_KEY = 'fb7457b7a39bdc9e742f08b657a8059a5e6a8fda6e32bfe0bfecf37eadf519eb';
 
 interface PremiumStatus {

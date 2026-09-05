@@ -913,7 +913,7 @@ function ZaloGroupMembersTab() {
               {/* ── Nút Kiếm tiền + Hỗ trợ ────────────────────────────── */}
               <div className="absolute top-0 right-0 flex items-center gap-2 z-10">
                 <button
-                  onClick={() => ipc.shell?.openExternal('https://fb.com/deplaoapp')}
+                  onClick={() => ipc.shell?.openExternal('https://fb.com/zalocrmapp')}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-full
                     bg-gray-700 border border-gray-600
                     text-gray-300 text-xs font-medium

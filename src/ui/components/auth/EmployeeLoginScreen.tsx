@@ -86,7 +86,7 @@ export default function EmployeeLoginScreen({ onBossMode, onEmployeeConnected }:
     // Load saved values from localStorage
     useEffect(() => {
         try {
-            const saved = localStorage.getItem('deplao_employee_login');
+            const saved = localStorage.getItem('zalocrm_employee_login');
             if (saved) {
                 const data = JSON.parse(saved);
                 if (data.bossAddress) setBossAddress(data.bossAddress);
@@ -152,7 +152,7 @@ export default function EmployeeLoginScreen({ onBossMode, onEmployeeConnected }:
             }
 
             // Lưu login cho lần sau
-            localStorage.setItem('deplao_employee_login', JSON.stringify({
+            localStorage.setItem('zalocrm_employee_login', JSON.stringify({
                 bossAddress: bossAddress.trim(),
                 username: username.trim(),
             }));
@@ -192,7 +192,7 @@ export default function EmployeeLoginScreen({ onBossMode, onEmployeeConnected }:
             <div className="w-full max-w-md bg-gray-800 border border-gray-700 rounded-2xl shadow-2xl overflow-hidden">
                 {/* Header */}
                 <div className="px-6 pt-6 pb-4 text-center">
-                    <h1 className="text-xl font-bold text-white mb-1">Deplao</h1>
+                    <h1 className="text-xl font-bold text-white mb-1">ZaloCRM</h1>
                     <p className="text-sm text-gray-400">Chọn chế độ đăng nhập</p>
                 </div>
 
@@ -292,7 +292,7 @@ export default function EmployeeLoginScreen({ onBossMode, onEmployeeConnected }:
 
                 {/* Footer */}
                 <div className="px-6 py-3 border-t border-gray-700/50 text-center">
-                    <p className="text-[10px] text-gray-400">Deplao - Quản lý Zalo & Facebook đa tài khoản</p>
+                    <p className="text-[10px] text-gray-400">ZaloCRM - Quản lý Zalo & Facebook đa tài khoản</p>
                 </div>
             </div>
         </div>

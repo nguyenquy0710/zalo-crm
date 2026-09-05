@@ -1,14 +1,12 @@
-# CLAUDE.md — zalo-crm ("Deplao")
+# CLAUDE.md — zalo-crm ("ZaloCRM")
 
 Guidance for AI agents working in this repository. More specific guidance lives in per-directory `CLAUDE.md` files — Claude resolves the most specific one first (see [Scope map](#scope-map)).
 
 ## What this product is
 
-**Deplao** — an Electron desktop app for managing multiple **Zalo / Facebook / Telegram** accounts from one place, with built-in **CRM** (campaigns, contacts, tags), a lightweight **ERP** (tasks/calendar/notes/HRM with RBAC), a visual **Workflow** automation builder, and an **AI Assistant** integration. Targets Vietnamese SMB sales/CSKH/marketing teams. Ships for Windows/macOS/Linux via `electron-builder`.
+**ZaloCRM** — an Electron desktop app for managing multiple **Zalo / Facebook / Telegram** accounts from one place, with built-in **CRM** (campaigns, contacts, tags), a lightweight **ERP** (tasks/calendar/notes/HRM with RBAC), a visual **Workflow** automation builder, and an **AI Assistant** integration. Targets Vietnamese SMB sales/CSKH/marketing teams. Ships for Windows/macOS/Linux via `electron-builder`.
 
-Two related-but-separate repos exist — do not confuse them:
-- **This repo** (`zalo-crm`) — the application source code.
-- **`babyvibe/deplao-builder`** (external) — where release binaries are actually published (all four CI build workflows push installers there) and where the `landing/` site is deployed via GitHub Pages. `landing/src/constants.ts` download links and the landing page's canonical URL/base path both point at `deplao-builder`, not at this repo or at `deplaoapp.com` directly.
+This repo (`nguyenquy0710/zalo-crm`) is both the application source code **and** the release/landing target: the four CI build workflows publish installers to this same repo's GitHub Releases, and `.github/workflows/deploy-landing.yml` deploys the `landing/` site to this repo's own `gh-pages` branch (served at `nguyenquy0710.github.io/zalo-crm/`). `landing/src/constants.ts` download links and the landing page's canonical URL/base path (`/zalo-crm/`) point here — **not** at `zalo-crm.quyit.id.vn` (the `homepage` field in the root `package.json`), which is a separate product domain, not the GitHub Pages host.
 
 ## Scope map
 
@@ -84,7 +82,7 @@ npm run rebuild:native   # fetch prebuilt better-sqlite3 binary matching the Ele
 - Renderer is sandboxed (`contextIsolation: true`, `nodeIntegration: false`); all main-process access goes through the typed `window.electronAPI` surface.
 - ERP identity/authorization is always resolved **server-side** (`ErpAuthContext.resolve()` in main process) — an IPC handler must never trust an `employeeId` supplied by the renderer. See [electron/ipc/CLAUDE.md](electron/ipc/CLAUDE.md).
 - Facebook E2EE (`src/bridge-e2ee/`) is an optional, gracefully-degrading Go subprocess bridge (JSON-RPC over stdio) — its absence disables 1:1 encrypted chat only; group messaging via MQTT is unaffected.
-- `src/services/tracking/TrackingService.ts` sends anonymous license-renewal telemetry to `deplaoapp.com` — it is documented as PII-free by design; preserve that invariant if you touch this file.
+- `src/services/tracking/TrackingService.ts` sends anonymous license-renewal telemetry to `zalo-crm.quyit.id.vn` — it is documented as PII-free by design; preserve that invariant if you touch this file.
 
 ## Runtime scratch space (`.rtk/`)
 

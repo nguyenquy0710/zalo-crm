@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import DownloadDropdown from './DownloadDropdown';
 
-const GITHUB_RELEASES_URL = 'https://github.com/babyvibe/Deplao-releases';
+const GITHUB_RELEASES_URL = 'https://github.com/babyvibe/ZaloCRM-releases';
 
 const heroMetrics = [
 	{ value: '10+', label: 'module', note: 'chat · crm · ai' },

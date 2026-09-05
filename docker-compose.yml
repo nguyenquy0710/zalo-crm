@@ -1,0 +1,21 @@
+# Phase 1 (xem plan): chỉ có service "boss" để kiểm chứng backend headless chạy được
+# trong Docker. Service "web" (frontend build cho trình duyệt) + reverse proxy sẽ
+# thêm ở Phase 2/3 của plan.
+services:
+  boss:
+    build: .
+    ports:
+      - "9900:9900"   # HttpRelayService: REST + Socket.IO
+      - "9888:9888"   # IntegrationRegistry webhook
+      - "9889:9889"   # WebhookGatewayService
+    volumes:
+      - zalocrm-data:/data
+    environment:
+      # Khoá mã hoá secret (thay OS keychain) — bắt buộc, tự sinh 1 lần rồi giữ nguyên
+      # (đổi khoá = không giải mã lại được secret cũ đã lưu). Ví dụ tạo: openssl rand -hex 32
+      # - ZALOCRM_SECRET_KEY=${ZALOCRM_SECRET_KEY:?Cần set ZALOCRM_SECRET_KEY (vd: openssl rand -hex 32)}
+      - ZALOCRM_SECRET_KEY=8f508251a5fe3ce7bc1832c115d0b40babbe4433fc2ca6e745b2669edd099db7
+    restart: unless-stopped
+
+volumes:
+  zalocrm-data:

@@ -25,7 +25,7 @@ class FileStorageService {
                 const userDataPath = app.getPath('userData');
                 let mediaRoot = userDataPath;
 
-                const configPath = path.join(userDataPath, 'deplao-config.json');
+                const configPath = path.join(userDataPath, 'zalocrm-config.json');
                 if (fs.existsSync(configPath)) {
                     try {
                         const cfg = JSON.parse(fs.readFileSync(configPath, 'utf-8'));

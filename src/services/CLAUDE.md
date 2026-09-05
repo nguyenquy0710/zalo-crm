@@ -28,7 +28,7 @@ Main-process business/domain layer. See [../CLAUDE.md](../CLAUDE.md) and root [.
 | `login/` | Thin façade over `utils/ZaloLoginHelper` for QR login | `LoginService.ts` |
 | `secure/` | Canonical `safeStorage`-backed secret encryption (`secureSet/secureGet/secureDelete`) | `SecureSettingsService.ts` |
 | `socket/` | Employee-mode push transport (Socket.IO), ring-buffer catch-up on reconnect | `SocketIOService.ts`, `SocketIOClient.ts`, `EventBuffer.ts` |
-| `tracking/` | Anonymous, PII-free license-renewal telemetry to deplaoapp.com | `TrackingService.ts` |
+| `tracking/` | Anonymous, PII-free license-renewal telemetry to zalo-crm.quyit.id.vn | `TrackingService.ts` |
 | `tunnel/` | Exposes local servers publicly via Cloudflare Quick Tunnels | `TunnelService.ts` |
 | `workflow/` | Visual automation engine (~100 `NodeType`s), webhook gateway (port 9889), per-account send queue | `WorkflowEngineService.ts`, `WebhookGatewayService.ts`, `AccountSendQueue.ts` |
 | `zalo/` | Core Zalo account connection/session (the original channel) | `ZaloService.ts` |

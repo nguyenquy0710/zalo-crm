@@ -35,3 +35,5 @@ src/bridge-e2ee/meta/
 *.gz
 *.exe
 tmp/
+
+.playwright-mcp/*

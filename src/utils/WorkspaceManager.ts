@@ -62,7 +62,12 @@ interface WorkspaceConfig {
 
 const CONFIG_FILENAME = 'workspaces.json';
 const DEFAULT_WORKSPACE_ID = 'default';
-const DEFAULT_DB_NAME = 'deplao-tool.db';           // existing DB
+const DEFAULT_DB_NAME = 'zalocrm-tool.db';
+// Filenames used before the Deplao → ZaloCRM rebrand. Kept only so first-time
+// migration on an existing install still finds the user's real data on disk.
+const LEGACY_DB_NAME = 'deplao-tool.db';
+const CUSTOM_FOLDER_CONFIG_NAME = 'zalocrm-config.json';
+const LEGACY_CUSTOM_FOLDER_CONFIG_NAME = 'deplao-config.json';
 const MAX_WORKSPACES = 5;
 
 // ── WorkspaceManager ────────────────────────────────────────────────────────
@@ -115,24 +120,22 @@ class WorkspaceManager {
 
     /**
      * First-time migration: create default workspace from existing DB.
-     * Existing deplao-tool.db stays in place - the default workspace simply points to it.
+     * Existing zalocrm-tool.db (or the pre-rebrand deplao-tool.db) stays in place -
+     * the default workspace simply points to whichever one is actually on disk.
      */
     private migrateFromLegacy(): void {
         Logger.log('[WorkspaceManager] No workspaces.json found - creating default workspace from legacy DB');
 
-        // Check for custom dbFolder config
-        let dbFolder = this.userDataPath;
-        const deplaoConfigPath = path.join(this.userDataPath, 'deplao-config.json');
-        if (fs.existsSync(deplaoConfigPath)) {
-            try {
-                const cfg = JSON.parse(fs.readFileSync(deplaoConfigPath, 'utf-8'));
-                if (cfg.dbFolder && fs.existsSync(cfg.dbFolder)) {
-                    dbFolder = cfg.dbFolder;
-                }
-            } catch { /* ignore */ }
-        }
+        const dbFolder = this.resolveCustomDbFolder();
 
-        const legacyDbPath = path.join(dbFolder, DEFAULT_DB_NAME);
+        // Prefer the current default filename; fall back to the pre-rebrand
+        // filename so installs that predate the Deplao → ZaloCRM rename don't
+        // silently lose access to their existing data.
+        const hasCurrentDb = fs.existsSync(path.join(dbFolder, DEFAULT_DB_NAME));
+        const dbName = hasCurrentDb || !fs.existsSync(path.join(dbFolder, LEGACY_DB_NAME))
+            ? DEFAULT_DB_NAME
+            : LEGACY_DB_NAME;
+        const legacyDbPath = path.join(dbFolder, dbName);
         const hasLegacyDb = fs.existsSync(legacyDbPath);
 
         const defaultWorkspace: Workspace = {
@@ -141,7 +144,7 @@ class WorkspaceManager {
             type: 'local',
             icon: '🏠',
             createdAt: Date.now(),
-            dbPath: DEFAULT_DB_NAME,       // relative - DatabaseService resolves it
+            dbPath: dbName,       // relative - DatabaseService resolves it
             relayEnabled: false,
             relayPort: 9900,
         };
@@ -223,9 +226,9 @@ class WorkspaceManager {
         };
 
         // Each additional workspace lives in its own folder:
-        //   workspace-{id}/deplao-tool.db + workspace-{id}/media/
+        //   workspace-{id}/zalocrm-tool.db + workspace-{id}/media/
         const wsFolder = `workspace-${id}`;
-        const wsDbRelative = `${wsFolder}/deplao-tool.db`;
+        const wsDbRelative = `${wsFolder}/zalocrm-tool.db`;
 
         if (params.type === 'local') {
             workspace.dbPath = wsDbRelative;
@@ -289,7 +292,7 @@ class WorkspaceManager {
         this.saveConfig();
 
         // Delete the workspace folder (contains DB + media)
-        const wsDbPath = ws.dbPath || `workspace-${id}/deplao-tool.db`;
+        const wsDbPath = ws.dbPath || `workspace-${id}/zalocrm-tool.db`;
         const fullDbPath = this.resolveDbPath(wsDbPath);
         const wsFolder = path.dirname(fullDbPath);
         const rootDbFolder = path.dirname(this.resolveDbPath(DEFAULT_DB_NAME));
@@ -297,7 +300,7 @@ class WorkspaceManager {
 
         Logger.log(`[WorkspaceManager] Delete: fullDbPath=${fullDbPath}, wsFolder=${wsFolder}, rootDbFolder=${rootDbFolder}`);
 
-        // SAFETY: Never delete the root deplao-tool.db (belongs to default workspace)
+        // SAFETY: Never delete the root zalocrm-tool.db (belongs to default workspace)
         if (fullDbPath === rootDbPath) {
             Logger.warn(`[WorkspaceManager] SAFETY: Refusing to delete root DB file: ${fullDbPath}`);
         } else {
@@ -380,21 +383,31 @@ class WorkspaceManager {
     // ─── Helpers ─────────────────────────────────────────────────────
 
     /**
-     * Resolve a workspace's dbPath to an absolute filesystem path.
-     * Respects custom dbFolder from deplao-config.json.
+     * Resolve the custom dbFolder override, if any, from zalocrm-config.json
+     * (falling back to the pre-rebrand deplao-config.json for existing installs).
      */
-    public resolveDbPath(relativeDbPath: string): string {
+    private resolveCustomDbFolder(): string {
         let dbFolder = this.userDataPath;
-        const deplaoConfigPath = path.join(this.userDataPath, 'deplao-config.json');
-        if (fs.existsSync(deplaoConfigPath)) {
+        const configPath = path.join(this.userDataPath, CUSTOM_FOLDER_CONFIG_NAME);
+        const legacyConfigPath = path.join(this.userDataPath, LEGACY_CUSTOM_FOLDER_CONFIG_NAME);
+        const resolvedConfigPath = fs.existsSync(configPath) ? configPath : legacyConfigPath;
+        if (fs.existsSync(resolvedConfigPath)) {
             try {
-                const cfg = JSON.parse(fs.readFileSync(deplaoConfigPath, 'utf-8'));
+                const cfg = JSON.parse(fs.readFileSync(resolvedConfigPath, 'utf-8'));
                 if (cfg.dbFolder && fs.existsSync(cfg.dbFolder)) {
                     dbFolder = cfg.dbFolder;
                 }
             } catch { /* ignore */ }
         }
-        return path.join(dbFolder, relativeDbPath);
+        return dbFolder;
+    }
+
+    /**
+     * Resolve a workspace's dbPath to an absolute filesystem path.
+     * Respects a custom dbFolder override (see resolveCustomDbFolder).
+     */
+    public resolveDbPath(relativeDbPath: string): string {
+        return path.join(this.resolveCustomDbFolder(), relativeDbPath);
     }
 
     /** Resolve the active workspace's DB path */

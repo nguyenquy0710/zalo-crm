@@ -4,7 +4,7 @@ Electron main process. See root [../CLAUDE.md](../CLAUDE.md) first. IPC handler 
 
 ## `main.ts` — what happens where
 
-- Single-instance lock, protocol registration (`local-media://` for local media streaming with HTTP Range support, `deplao://` for deep links like `deplao://openChat?accountId=...`) happen **before** `app.whenReady()`.
+- Single-instance lock, protocol registration (`local-media://` for local media streaming with HTTP Range support, `zalocrm://` for deep links like `zalocrm://openChat?accountId=...`) happen **before** `app.whenReady()`.
 - `app.whenReady()` order matters: DB init (`DatabaseService.getInstance().initialize()`) → path migration → window/tray creation → **register every domain's IPC handlers** (flat list of ~19 `registerXxxIpc()` calls — `main.ts` itself is the IPC registry, there's no separate router file) → staggered (`setTimeout`) background service startup: channel auto-reconnect, `startupAllWorkspaces()`, CRM campaign resume, ERP schedulers, Workflow Engine, Integration Registry, Webhook Gateway, Tracking, daily media-cleanup cron.
 - `before-quit`/`will-quit` explicitly tear down timers/cron jobs/servers/sockets/DB — this is required, not optional, because those background services would otherwise keep the process alive as an orphaned entry after the window closes.
 - Auto-update (`electron-updater`) waits for a renderer-ready IPC signal before the first `checkForUpdates()`; manual controls are `update:check`/`update:download`/`update:install` from the renderer.

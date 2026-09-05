@@ -422,7 +422,7 @@ class HttpClientService {
                 let targetDbPath: string | null = null;
                 if (this.workspaceId) {
                     const ws = WorkspaceManager.getInstance().getWorkspaceById(this.workspaceId);
-                    if (ws) targetDbPath = WorkspaceManager.getInstance().resolveDbPath(ws.dbPath || 'deplao-tool.db');
+                    if (ws) targetDbPath = WorkspaceManager.getInstance().resolveDbPath(ws.dbPath || 'zalocrm-tool.db');
                 }
                 const activeDbPath = db.getDbPath();
                 const msgId = String(data.msgId || '');
@@ -480,7 +480,7 @@ class HttpClientService {
                 let targetDbPath: string | null = null;
                 if (this.workspaceId) {
                     const ws = WorkspaceManager.getInstance().getWorkspaceById(this.workspaceId);
-                    if (ws) targetDbPath = WorkspaceManager.getInstance().resolveDbPath(ws.dbPath || 'deplao-tool.db');
+                    if (ws) targetDbPath = WorkspaceManager.getInstance().resolveDbPath(ws.dbPath || 'zalocrm-tool.db');
                 }
                 const runOnWsDb = (fn: () => void) => {
                     if (targetDbPath && targetDbPath !== db.getDbPath()) {
@@ -526,7 +526,7 @@ class HttpClientService {
             let targetDbPath: string | null = null;
             if (this.workspaceId) {
                 const ws = WorkspaceManager.getInstance().getWorkspaceById(this.workspaceId);
-                if (ws) targetDbPath = WorkspaceManager.getInstance().resolveDbPath(ws.dbPath || 'deplao-tool.db');
+                if (ws) targetDbPath = WorkspaceManager.getInstance().resolveDbPath(ws.dbPath || 'zalocrm-tool.db');
             }
             const runOnWsDb = (fn: () => void) => {
                 if (targetDbPath && targetDbPath !== db.getDbPath()) {
@@ -709,7 +709,7 @@ class HttpClientService {
             if (this.workspaceId) {
                 const ws = wm.getWorkspaceById(this.workspaceId);
                 if (ws) {
-                    targetDbPath = wm.resolveDbPath(ws.dbPath || 'deplao-tool.db');
+                    targetDbPath = wm.resolveDbPath(ws.dbPath || 'zalocrm-tool.db');
                 }
             }
 
@@ -749,7 +749,7 @@ class HttpClientService {
             if (this.workspaceId) {
                 const ws = wm.getWorkspaceById(this.workspaceId);
                 if (ws) {
-                    targetDbPath = wm.resolveDbPath(ws.dbPath || 'deplao-tool.db');
+                    targetDbPath = wm.resolveDbPath(ws.dbPath || 'zalocrm-tool.db');
                 }
             }
 
@@ -803,7 +803,7 @@ class HttpClientService {
             if (this.workspaceId) {
                 const ws = wm.getWorkspaceById(this.workspaceId);
                 if (ws) {
-                    targetDbPath = wm.resolveDbPath(ws.dbPath || 'deplao-tool.db');
+                    targetDbPath = wm.resolveDbPath(ws.dbPath || 'zalocrm-tool.db');
                 }
             }
 

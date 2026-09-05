@@ -868,7 +868,7 @@ export default function WorkflowList({ onEdit, onOpenStore }: Props) {
 
   const handleExport = (wf: any) => {
     const exportData = {
-      _deplaoWorkflow: true,
+      _zalocrmWorkflow: true,
       _version: 1,
       _exportedAt: new Date().toISOString(),
       channel: normalizeWorkflowChannel(wf.channel),
@@ -897,8 +897,8 @@ export default function WorkflowList({ onEdit, onOpenStore }: Props) {
     reader.onload = async (ev) => {
       try {
         const data = JSON.parse(ev.target?.result as string);
-        if (!data._deplaoWorkflow) {
-          showNotification('File không phải workflow Deplao hợp lệ', 'error');
+        if (!data._zalocrmWorkflow) {
+          showNotification('File không phải workflow ZaloCRM hợp lệ', 'error');
           return;
         }
         // File cũ không có channel → mặc định Zalo

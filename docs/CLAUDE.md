@@ -9,5 +9,5 @@ Documentation standards for this repo. See root [../CLAUDE.md](../CLAUDE.md) fir
 
 ## Keep in mind when writing docs
 
-- This repo (`zalo-crm`) is the source; released binaries and the deployed landing page live in the separate `babyvibe/deplao-builder` repo (see root CLAUDE.md). Don't write install/download instructions that assume artifacts are built or hosted from this repo.
-- The product is branded "Deplao" in-app and in the build config (`appId: com.Deplao.app`), even though the repo/folder name is `zalo-crm` — use "Deplao" in user-facing docs, keep "zalo-crm" for repo/dev-tooling references.
+- This repo (`nguyenquy0710/zalo-crm`) is both the source and the release/landing target — released binaries publish to this repo's GitHub Releases, and the landing page deploys to this repo's `gh-pages` branch (see root CLAUDE.md).
+- The product is branded "ZaloCRM" in-app and in the build config (`appId: com.ZaloCRM.app`), even though the repo/folder name is `zalo-crm` — use "ZaloCRM" in user-facing docs, keep "zalo-crm" for repo/dev-tooling references.

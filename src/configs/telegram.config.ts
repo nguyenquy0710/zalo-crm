@@ -9,7 +9,7 @@
  *
  * Lưu ý: API_ID/API_HASH là "tên app", không phải secret.
  * Telegram Desktop, Unigram đều công khai. Không có rủi ro bảo mật.
- * APP_ID hiện tại là của Deplao, bạn có thể tạo app riêng nếu muốn..
+ * APP_ID hiện tại là của ZaloCRM, bạn có thể tạo app riêng nếu muốn..
  */
 
 export const API_ID = 35191552;       // Điền api_id (số) - VD: 12345678

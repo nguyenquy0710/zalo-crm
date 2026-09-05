@@ -1,8 +1,8 @@
-# Business Document — Deplao
+# Business Document — ZaloCRM
 
 ## What it is
 
-Deplao is a Windows/macOS/Linux desktop application that lets a person or a small team manage **multiple Zalo, Facebook, and Telegram accounts** from a single unified inbox, with built-in **CRM** (campaigns, contacts, tags, notes), a lightweight **ERP** (tasks, calendar, notes, HR/attendance with role-based permissions), a visual drag-and-drop **workflow automation builder**, and an **AI Assistant** for auto-replies/classification.
+ZaloCRM is a Windows/macOS/Linux desktop application that lets a person or a small team manage **multiple Zalo, Facebook, and Telegram accounts** from a single unified inbox, with built-in **CRM** (campaigns, contacts, tags, notes), a lightweight **ERP** (tasks, calendar, notes, HR/attendance with role-based permissions), a visual drag-and-drop **workflow automation builder**, and an **AI Assistant** for auto-replies/classification.
 
 ## Target audience
 
@@ -17,8 +17,8 @@ Vietnamese SMB sales, customer-care ("CSKH"), and marketing teams who run busine
 
 ## Monetization signal
 
-`src/services/tracking/TrackingService.ts` sends anonymous (explicitly documented as PII-free), rate-limited pings to `deplaoapp.com` — described in code comments as being for premium license renewal, implying a licensed/paid tier gates some functionality. The specifics of what's gated are not evident from the tracking code alone.
+`src/services/tracking/TrackingService.ts` sends anonymous (explicitly documented as PII-free), rate-limited pings to `zalo-crm.quyit.id.vn` — described in code comments as being for premium license renewal, implying a licensed/paid tier gates some functionality. The specifics of what's gated are not evident from the tracking code alone.
 
 ## Distribution
 
-Installers are built for Windows (nsis), macOS (dmg, x64+arm64), and Linux (AppImage, deb) via CI (`.github/workflows/build-*.yml`) and published to the separate `babyvibe/deplao-builder` GitHub repo's Releases. The public-facing marketing/download site (`landing/`) is deployed to GitHub Pages under that same `deplao-builder` path, not to `deplaoapp.com` directly — worth confirming with whoever owns the domain/release process whether that's intentional or a migration-in-progress.
+Installers are built for Windows (nsis), macOS (dmg, x64+arm64), and Linux (AppImage, deb) via CI (`.github/workflows/build-*.yml`) and published to this repo's own GitHub Releases. The public-facing marketing/download site (`landing/`) is deployed to this repo's GitHub Pages (`nguyenquy0710.github.io/zalo-crm/`), not to `zalo-crm.quyit.id.vn` directly — that domain is the product homepage only, worth confirming with whoever owns the domain whether it should eventually front the landing page too.

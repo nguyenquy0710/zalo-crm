@@ -446,7 +446,7 @@ export const INTEGRATION_TEMPLATES: WorkflowTemplate[] = [
             '💰 Tổng thu: `{{ $node.n2.transactions | sumBy("amount") | formatVND }}`\n' +
             '📋 Số GD: `{{ $node.n2.transactions.length }}` giao dịch\n' +
             '⬆️ Cao nhất: `{{ $node.n2.transactions | maxBy("amount") | formatVND }}`\n\n' +
-            '- _Deplao AutoReport_ 🤖',
+            '- _ZaloCRM AutoReport_ 🤖',
         },
       },
       {

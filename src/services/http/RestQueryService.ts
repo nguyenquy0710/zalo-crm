@@ -281,6 +281,19 @@ class RestQueryService {
     return this.request<T>({ method: 'DELETE', path, timeout });
   }
 
+  /**
+   * Thực thi 1 hành động IPC (channel + params) qua Boss's /api/proxy/action —
+   * cùng cơ chế mà Employee desktop dùng để forward hành động (xem HttpRelayService
+   * .executeProxyAction / electron/ipc/employeeIpc.ts's employee:proxyAction).
+   * Trả về nguyên kết quả của handler (giống hệt shape mà ipcRenderer.invoke() trả về),
+   * không bọc thêm { success, data }.
+   */
+  public async proxyAction(channel: string, params?: any): Promise<any> {
+    const res = await this.post('/api/proxy/action', { channel, params: params ?? {} });
+    if (!res.success) return { success: false, error: res.error };
+    return res.data;
+  }
+
   /** Upload binary data to boss. Returns bossPath on success. */
   public async postBinary(path: string, data: Uint8Array | Blob, headers: Record<string, string>, timeout = 120000): Promise<RestResponse> {
     if (!this.connected) {

@@ -1,13 +1,13 @@
 ﻿<div align="center">
 
-<img src="https://deplaoapp.com/assets/icon-CuJ0M91u.png" alt="Deplao" width="120" />
+<img src="https://zalo-crm.quyit.id.vn/assets/icon-CuJ0M91u.png" alt="ZaloCRM" width="120" />
 
-# Deplao
+# ZaloCRM
 
 **Desktop app for managing multiple Zalo, Facebook & Telegram accounts**
 CRM · Marketing · ERP · POS · Workflow · AI Assistant — all in one unified workspace
 
-[🌐 Website](https://deplaoapp.com/) · [🇻🇳 Tiếng Việt](./README.md)
+[🌐 Website](https://zalo-crm.quyit.id.vn/) · [🇻🇳 Tiếng Việt](./README.md)
 
 ![Version](https://img.shields.io/badge/version-26.8.5-22c55e)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20Ubuntu-3b82f6)
@@ -15,9 +15,9 @@ CRM · Marketing · ERP · POS · Workflow · AI Assistant — all in one unifie
 ![React](https://img.shields.io/badge/React-18-61dafb?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript&logoColor=white)
 ![Node.js](https://img.shields.io/badge/Node.js-18+-339933?logo=node.js&logoColor=white)
-![License](https://img.shields.io/github/license/babyvibe/deplao-builder)
-![Stars](https://img.shields.io/github/stars/babyvibe/deplao-builder?style=social)
-![Forks](https://img.shields.io/github/forks/babyvibe/deplao-builder?style=social)
+![License](https://img.shields.io/github/license/nguyenquy0710/zalo-crm)
+![Stars](https://img.shields.io/github/stars/nguyenquy0710/zalo-crm?style=social)
+![Forks](https://img.shields.io/github/forks/nguyenquy0710/zalo-crm?style=social)
 
 </div>
 
@@ -39,54 +39,54 @@ CRM · Marketing · ERP · POS · Workflow · AI Assistant — all in one unifie
 <tr>
 <td align="center" width="50%">
 
-<a href="https://github.com/babyvibe/deplao-builder/releases/latest/download/Deplao-Setup-26.8.5.exe">
+<a href="https://github.com/nguyenquy0710/zalo-crm/releases/latest/download/ZaloCRM-Setup-26.8.5.exe">
 <img src="https://img.shields.io/badge/🪟_Windows_10/11-v26.8.5-0078d4?style=for-the-badge&logo=windows&logoColor=white" alt="Download Windows" />
 </a>
 
-<big><strong>Deplao-Setup-26.8.5.exe</strong></big>
+<big><strong>ZaloCRM-Setup-26.8.5.exe</strong></big>
 
 </td>
 <td align="center" width="50%">
 
-<a href="https://github.com/babyvibe/deplao-builder/releases/latest/download/Deplao-26.8.5-arm64.dmg">
+<a href="https://github.com/nguyenquy0710/zalo-crm/releases/latest/download/ZaloCRM-26.8.5-arm64.dmg">
 <img src="https://img.shields.io/badge/🍎_macOS_M1+-v26.8.5-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Download macOS Apple Silicon" />
 </a>
 
-<big><strong>Deplao-26.8.5-arm64.dmg</strong></big>
+<big><strong>ZaloCRM-26.8.5-arm64.dmg</strong></big>
 
 </td>
 </tr>
 <tr>
 <td align="center" width="50%">
 
-<a href="https://github.com/babyvibe/deplao-builder/releases/latest/download/Deplao-26.8.5.AppImage">
+<a href="https://github.com/nguyenquy0710/zalo-crm/releases/latest/download/ZaloCRM-26.8.5.AppImage">
 <img src="https://img.shields.io/badge/🐧_Ubuntu_Linux-v26.8.5-e95420?style=for-the-badge&logo=ubuntu&logoColor=white" alt="Download Ubuntu" />
 </a>
 
-<big><strong>Deplao-26.8.5.AppImage</strong></big><br>
+<big><strong>ZaloCRM-26.8.5.AppImage</strong></big><br>
 <big>works on any distro - <code>chmod +x</code> & run</big>
 
 </td>
 <td align="center" width="50%">
 
-<a href="https://github.com/babyvibe/deplao-builder/releases/latest/download/Deplao-26.8.5.dmg">
+<a href="https://github.com/nguyenquy0710/zalo-crm/releases/latest/download/ZaloCRM-26.8.5.dmg">
 <img src="https://img.shields.io/badge/🍎_macOS_Intel-v26.8.5-555555?style=for-the-badge&logo=apple&logoColor=white" alt="Download macOS Intel" />
 </a>
 
-<big><strong>Deplao-26.8.5.dmg</strong></big>
+<big><strong>ZaloCRM-26.8.5.dmg</strong></big>
 
 </td>
 </tr>
 </table>
 
 <p align="center">
-👉 <strong><a href="https://github.com/babyvibe/deplao-builder/releases">View all releases</a></strong>
+👉 <strong><a href="https://github.com/nguyenquy0710/zalo-crm/releases">View all releases</a></strong>
 </p>
 
 <details>
 <summary>⚠️ Security warning on first launch (blocked by Windows / macOS / Linux)</summary>
 
-Deplao is not code-signed (we're bootstrapped), so your OS may show a warning when opening the installer.
+ZaloCRM is not code-signed (we're bootstrapped), so your OS may show a warning when opening the installer.
 
 ---
 
@@ -122,8 +122,8 @@ macOS may show **"cannot be opened because it is from an unidentified developer"
 After downloading the `.AppImage` file:
 
 ```bash
-chmod +x Deplao-*.AppImage
-./Deplao-*.AppImage
+chmod +x ZaloCRM-*.AppImage
+./ZaloCRM-*.AppImage
 ```
 
 > If you get "FUSE: fuse2 not available", install `libfuse2`:
@@ -133,18 +133,18 @@ chmod +x Deplao-*.AppImage
 
 Or install the `.deb` package:
 ```bash
-sudo dpkg -i Deplao_*_amd64.deb
+sudo dpkg -i ZaloCRM_*_amd64.deb
 ```
 
 </details>
 
 <p align="center">
-  <img src="./assets/deplao-overview-map.svg" alt="Deplao - centralized desktop workspace for Zalo sales and customer care" width="960" />
+  <img src="./assets/zalocrm-overview-map.svg" alt="ZaloCRM - centralized desktop workspace for Zalo sales and customer care" width="960" />
 </p>
 
 ## 🛠️ Tech Stack
 
-Deplao is built on the following core technologies:
+ZaloCRM is built on the following core technologies:
 
 - **Core libraries:** zca-js & fbchat-v2
 - **AI Gateway:** 9router
@@ -200,7 +200,7 @@ flowchart LR
 
 ```mermaid
 mindmap
-  root((🖥️ Deplao))
+  root((🖥️ ZaloCRM))
     ⚙️ Main Process
       📡 IPC Handlers
         login · zalo · crm
@@ -259,7 +259,7 @@ flowchart TB
     end
 
     subgraph EMP["💻 Employee Machine - Remote Workspace"]
-        EA("📲 Deplao App\nEmployee Mode")
+        EA("📲 ZaloCRM App\nEmployee Mode")
         DA("🔀 DataAccessor\nauto-routing layer")
         RQ("🌐 RestQueryService\nHTTP REST client")
         EP("🔐 Permission Filter\nerp · crm · workflow · ...")
@@ -301,7 +301,7 @@ flowchart LR
     end
 
     subgraph STORE["💾 Local Storage"]
-        DB[("🗄️ SQLite\ndeplao-tool.db\nmessages · contacts\ncrm · workflow · erp")]
+        DB[("🗄️ SQLite\nzalocrm-tool.db\nmessages · contacts\ncrm · workflow · erp")]
         MED("📁 FileStorage\n~/media/\nimages · videos · files")
         ES("🔑 electron-store\ncookies · tokens\nsettings")
     end
@@ -360,9 +360,9 @@ npm run production
 
 </details>
 
-## 🚀 What is Deplao?
+## 🚀 What is ZaloCRM?
 
-At a glance, Deplao is:
+At a glance, ZaloCRM is:
 
 - **Operations hub** - multi-account, unified inbox, fast reply
 - **Customer management layer** - CRM, labels, interaction history, campaigns
@@ -391,68 +391,68 @@ Screens are ordered by typical usage flow: dashboard → chat → CRM → workfl
 <table>
   <tr>
     <td>
-      <img src="./assets/dashboard.png" alt="Multi-account Zalo dashboard in Deplao" width="360" />
+      <img src="./assets/dashboard.png" alt="Multi-account Zalo dashboard in ZaloCRM" width="360" />
       <br />
       <sub><strong>Multi-account dashboard</strong></sub>
     </td>
     <td>
-      <img src="./assets/chat.png" alt="Unified chat inbox in Deplao" width="360" />
+      <img src="./assets/chat.png" alt="Unified chat inbox in ZaloCRM" width="360" />
       <br />
       <sub><strong>Unified inbox with AI</strong></sub>
     </td>
     <td>
-      <img src="./assets/crm.png" alt="CRM and contact management in Deplao" width="360" />
+      <img src="./assets/crm.png" alt="CRM and contact management in ZaloCRM" width="360" />
       <br />
       <sub><strong>CRM & contacts</strong></sub>
     </td>
   </tr>
   <tr>
     <td>
-      <img src="./assets/scan-members-group.png" alt="Scan Zalo group members in Deplao" width="360" />
+      <img src="./assets/scan-members-group.png" alt="Scan Zalo group members in ZaloCRM" width="360" />
       <br />
       <sub><strong>Group member scanning</strong></sub>
     </td>
     <td>
-      <img src="./assets/campaign.png" alt="Mass messaging campaign in Deplao" width="360" />
+      <img src="./assets/campaign.png" alt="Mass messaging campaign in ZaloCRM" width="360" />
       <br />
       <sub><strong>Mass messaging campaigns</strong></sub>
     </td>
     <td>
-      <img src="./assets/workflow.png" alt="Drag-and-drop workflow editor in Deplao" width="360" />
+      <img src="./assets/workflow.png" alt="Drag-and-drop workflow editor in ZaloCRM" width="360" />
       <br />
       <sub><strong>Workflow editor</strong></sub>
     </td>
   </tr>
   <tr>
     <td>
-      <img src="./assets/detail-workflow.png" alt="Workflow node configuration in Deplao" width="360" />
+      <img src="./assets/detail-workflow.png" alt="Workflow node configuration in ZaloCRM" width="360" />
       <br />
       <sub><strong>Workflow node detail</strong></sub>
     </td>
     <td>
-      <img src="./assets/workflow-ai.png" alt="AI-assisted workflow creation in Deplao" width="360" />
+      <img src="./assets/workflow-ai.png" alt="AI-assisted workflow creation in ZaloCRM" width="360" />
       <br />
       <sub><strong>AI workflow generation</strong></sub>
     </td>
     <td>
-      <img src="./assets/pos.png" alt="POS and sales integration in Deplao" width="360" />
+      <img src="./assets/pos.png" alt="POS and sales integration in ZaloCRM" width="360" />
       <br />
       <sub><strong>POS, shipping & payments</strong></sub>
     </td>
   </tr>
   <tr>
     <td>
-      <img src="./assets/report.jpg" alt="Reports and performance analytics in Deplao" width="360" />
+      <img src="./assets/report.jpg" alt="Reports and performance analytics in ZaloCRM" width="360" />
       <br />
       <sub><strong>Reports & analytics</strong></sub>
     </td>
     <td>
-      <img src="./assets/report-employee.png" alt="Employee performance report in Deplao" width="360" />
+      <img src="./assets/report-employee.png" alt="Employee performance report in ZaloCRM" width="360" />
       <br />
       <sub><strong>Employee reports</strong></sub>
     </td>
     <td>
-      <img src="./assets/erp.png" alt="Internal ERP and team operations in Deplao" width="360" />
+      <img src="./assets/erp.png" alt="Internal ERP and team operations in ZaloCRM" width="360" />
       <br />
       <sub><strong>Internal ERP</strong></sub>
     </td>
@@ -461,7 +461,7 @@ Screens are ordered by typical usage flow: dashboard → chat → CRM → workfl
 
 ## 🎯 Who is it for?
 
-Deplao is designed for:
+ZaloCRM is designed for:
 
 - Online shops and sales teams closing deals via Zalo, Facebook, Telegram
 - Automating workflows, combining marketing to find new customers, and automating customer care
@@ -524,7 +524,7 @@ Deplao is designed for:
 
 ## 🔒 Security & data
 
-Deplao prioritizes a local-first architecture:
+ZaloCRM prioritizes a local-first architecture:
 
 - All messages, contacts, CRM data, settings and media are stored on the user's machine
 - Login via QR Code - no Zalo password stored; cookies are encrypted on-device
@@ -540,11 +540,11 @@ Deplao prioritizes a local-first architecture:
 
 ## 📣 Contact & support
 
-- Bug reports, feature requests, questions: 👉 [Open an issue](https://github.com/babyvibe/deplao-builder/issues)
+- Bug reports, feature requests, questions: 👉 [Open an issue](https://github.com/nguyenquy0710/zalo-crm/issues)
 
 ## 🙏 Acknowledgements
 
-Deplao would like to thank the projects: zca-js & fbchat-v2.
+ZaloCRM would like to thank the projects: zca-js & fbchat-v2.
 
 ---
 

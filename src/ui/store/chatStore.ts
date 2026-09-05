@@ -4,7 +4,7 @@ import type { Channel } from '@/../configs/channelConfig';
 import { CHANNEL } from '@/lib/channelHelper';
 
 const MESSAGE_TOPIC_KEY_SEPARATOR = '__tg_topic__';
-const FORUM_TOPICS_STORAGE_PREFIX = 'deplao_forum_topics_';
+const FORUM_TOPICS_STORAGE_PREFIX = 'zalocrm_forum_topics_';
 
 /** Restore persisted forum topics from localStorage (survives app restart). */
 function loadPersistedForumTopics(): Record<string, any[]> {

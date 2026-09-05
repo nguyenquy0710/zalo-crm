@@ -1,5 +1,5 @@
 /**
- * TrackingService - Gửi dữ liệu tracking page lên API deplaoapp.com.
+ * TrackingService - Gửi dữ liệu tracking page lên API zalo-crm.quyit.id.vn.
  *
  * - Chỉ hoạt động khi build production (GitHub Actions / NODE_ENV=production).
  * - Cache local: mỗi ngày push 1 lần. Nếu có page mới tích hợp → track lại ngay trong ngày.
@@ -7,7 +7,7 @@
  * - Không gửi các field nhạy cảm khác (name, phone,...).
  * - Tính năng phục vụ gia hạn tính năng premium, không thu thập thông tin cá nhân.
  *
- * API: POST https://deplaoapp.com/api/tracking/page
+ * API: POST https://zalo-crm.quyit.id.vn/api/tracking/page
  * Rate limit: 10 req/giờ/IP - trả về 429 nếu vượt quá.
  */
 
@@ -45,7 +45,7 @@ interface TrackingApiResponse {
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-const API_URL = 'https://deplaoapp.com/api/tracking/page';
+const API_URL = 'https://zalo-crm.quyit.id.vn/api/tracking/page';
 const CACHE_FILENAME = 'tracking-cache.json';
 const CHECK_INTERVAL_MS = 60 * 60 * 1000; // 60 phút
 

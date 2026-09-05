@@ -19,7 +19,7 @@ export default function AffiliateIntroPopup({ onClose }: Props) {
           <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-white/10 rounded-full" />
 
           <div className="relative z-10">
-            <h2 className="text-xl font-bold text-white-important mb-1">Kiếm tiền cùng Deplao</h2>
+            <h2 className="text-xl font-bold text-white-important mb-1">Kiếm tiền cùng ZaloCRM</h2>
             <p className="text-white/80 text-sm">Chia sẻ trải nghiệm - Nhận hoa hồng hấp dẫn</p>
           </div>
         </div>
@@ -30,13 +30,13 @@ export default function AffiliateIntroPopup({ onClose }: Props) {
           {/* Intro text */}
           <div className="text-center">
             <p className="text-gray-300 text-sm leading-relaxed">
-              Bạn đang sử dụng Deplao và thấy hữu ích? <span className="text-white font-semibold">Giới thiệu cho bạn bè</span> — mỗi khách hàng mới đăng ký qua mã của bạn, bạn nhận <span className="text-amber-400 font-bold">25% hoa hồng</span> trên giá trị đơn hàng.
+              Bạn đang sử dụng ZaloCRM và thấy hữu ích? <span className="text-white font-semibold">Giới thiệu cho bạn bè</span> — mỗi khách hàng mới đăng ký qua mã của bạn, bạn nhận <span className="text-amber-400 font-bold">25% hoa hồng</span> trên giá trị đơn hàng.
             </p>
           </div>
 
           {/* ── Use cases ─────────────────────────────────────────────── */}
           <div className="space-y-3">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Deplao giúp gì cho người dùng?</h3>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">ZaloCRM giúp gì cho người dùng?</h3>
 
             {[
               {
@@ -141,7 +141,7 @@ export default function AffiliateIntroPopup({ onClose }: Props) {
         {/* ── Footer ──────────────────────────────────────────────────── */}
         <div className="px-6 py-4 border-t border-gray-700 flex flex-col items-center gap-3">
           <button
-            onClick={() => ipc.shell?.openExternal('https://deplaoapp.com/affiliate')}
+            onClick={() => ipc.shell?.openExternal('https://zalo-crm.quyit.id.vn/affiliate')}
             className="w-full py-3 bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 hover:from-amber-400 hover:via-orange-400 hover:to-red-400
               text-white-important font-bold rounded-xl text-sm shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40
               transition-all duration-200 flex items-center justify-center gap-2"

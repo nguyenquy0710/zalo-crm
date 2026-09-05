@@ -372,7 +372,7 @@ export default function Settings() {
                         <button onClick={() => {
                           requestNotificationPermission().then(granted => {
                             if (!granted) { showNotification('Cần cấp quyền thông báo', 'warning'); return; }
-                            showDesktopNotification('Deplao', 'Đây là thông báo thử nghiệm 🎉');
+                            showDesktopNotification('ZaloCRM', 'Đây là thông báo thử nghiệm 🎉');
                           });
                         }} className="flex-1 py-1.5 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg transition-colors">
                           <MonitorIcon className="w-4 h-4 inline" /> Test popup
@@ -384,7 +384,7 @@ export default function Settings() {
                 <p className="text-xs text-gray-400 leading-relaxed">
                   * Thông báo không hiện với những hội thoại đã tắt thông báo.<br />
                   * <strong>Windows:</strong> Kiểm tra quyền trong Settings &gt; Notifications.<br />
-                  * <strong>macOS:</strong> Kiểm tra trong System Settings &gt; Notifications &gt; Deplao.<br />
+                  * <strong>macOS:</strong> Kiểm tra trong System Settings &gt; Notifications &gt; ZaloCRM.<br />
                   * Khi tắt notification ở cấp hệ điều hành, âm thanh cũng sẽ bị tắt theo.
                 </p>
               </div>
@@ -558,7 +558,7 @@ export default function Settings() {
               <span className="font-mono text-green-300">{pendingFolder}</span>
             </p>
             <p className="text-xs text-gray-400 mt-2 leading-relaxed">
-              Thư mục này đã có file dữ liệu (<code className="text-yellow-300">deplao-tool.db</code>).
+              Thư mục này đã có file dữ liệu (<code className="text-yellow-300">zalocrm-tool.db</code>).
               Bạn muốn làm gì?
             </p>
           </div>
@@ -586,7 +586,7 @@ export default function Settings() {
               onClick={async () => {
                 const ok = await showConfirm({
                   title: 'Ghi đè dữ liệu cũ?',
-                  message: `Dữ liệu hiện tại sẽ được sao chép vào:\n${pendingFolder}\n\nFile deplao-tool.db cũ tại đó sẽ bị GHI ĐÈ. Thao tác không thể hoàn tác.`,
+                  message: `Dữ liệu hiện tại sẽ được sao chép vào:\n${pendingFolder}\n\nFile zalocrm-tool.db cũ tại đó sẽ bị GHI ĐÈ. Thao tác không thể hoàn tác.`,
                   confirmText: 'Ghi đè',
                   variant: 'danger',
                 });

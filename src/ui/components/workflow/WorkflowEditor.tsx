@@ -428,7 +428,7 @@ export default function WorkflowEditor({ workflowId, onBack }: Props) {
   const handleExport = () => {
     const wf = buildWorkflow();
     const exportData = {
-      _deplaoWorkflow: true,
+      _zalocrmWorkflow: true,
       _version: 1,
       _exportedAt: new Date().toISOString(),
       channel: workflowMeta.channel,
@@ -458,8 +458,8 @@ export default function WorkflowEditor({ workflowId, onBack }: Props) {
     reader.onload = (ev) => {
       try {
         const data = JSON.parse(ev.target?.result as string);
-        if (!data._deplaoWorkflow) {
-          showNotification('File không phải workflow Deplao hợp lệ', 'error');
+        if (!data._zalocrmWorkflow) {
+          showNotification('File không phải workflow ZaloCRM hợp lệ', 'error');
           return;
         }
         // File cũ không có channel → mặc định Zalo
