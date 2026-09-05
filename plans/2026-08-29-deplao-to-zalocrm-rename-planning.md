@@ -10,8 +10,10 @@ estimated_hours: ~6-10
 # Kế hoạch: Đổi thương hiệu ứng dụng từ "Deplao" sang "ZaloCRM"
 
 > **Ngày lập kế hoạch:** 2026-08-29
-> **Scope dự kiến:** 72 file trong repo `zalo-crm` (đã grep `Deplao|deplao|DEPLAO`, case-insensitive) + 1 repo ngoài (`babyvibe/deplao-builder`) không nằm trong tầm kiểm soát trực tiếp của thay đổi này
+> **Scope dự kiến (lúc lập kế hoạch):** 72 file trong repo `zalo-crm` (đã grep `Deplao|deplao|DEPLAO`, case-insensitive) + 1 repo ngoài (`babyvibe/deplao-builder`) không nằm trong tầm kiểm soát trực tiếp của thay đổi này
+> **Scope thực tế (sau khi thực thi, xem mục 7–8):** 74 file + 1 asset đổi tên; repo ngoài đã được gộp về chung 1 repo `nguyenquy0710/zalo-crm` theo quyết định người dùng — không còn "ngoài tầm kiểm soát" nữa
 > **Priority:** high (ảnh hưởng nhận diện thương hiệu toàn app), nhưng có nhiều điểm **rủi ro cao cần quyết định nghiệp vụ trước khi sửa code**
+> **Trạng thái:** ✅ Cả 2 giai đoạn đã hoàn thành, đã kiểm thử thực tế (build + chạy) — xem mục 9–10
 
 ---
 
@@ -62,24 +64,28 @@ Các chuỗi hiển thị (dialog, changelog, tooltip, settings, sidebar/topbar 
 
 Không tự ý gộp 2 giai đoạn làm 1 lần edit lớn, vì Nhóm A/B/C nếu đổi sai có thể: (a) khiến app không tự update được cho user cũ, (b) khiến user cũ bị "mất" dữ liệu do đổi tên file DB mặc định, (c) làm hỏng link tải trên landing page vì trỏ tới file/asset không tồn tại ở repo `deplao-builder`.
 
+**Cập nhật 2026-09-05:** Chiến lược 2 giai đoạn này đã được tuân thủ đúng khi thực thi — Giai đoạn 1 chạy trước (không cần quyết định), Giai đoạn 2 chỉ chạy sau khi có đủ quyết định ở mục 7. Chi tiết thực thi ở mục 8, checklist đã tick ở mục 3.
+
 ## 3. Công việc cần thực hiện (Todo)
 
-### Giai đoạn 1 — An toàn
-- [ ] Đổi chuỗi hiển thị trong toàn bộ Nhóm E (`src/ui/**`, ~20 file)
-- [ ] Đổi chuỗi hiển thị trong Nhóm D (landing site — trừ `constants.ts` phần URL/domain, xem mục 4)
-- [ ] Rà từng vị trí trong Nhóm F, đổi các comment/log không phải identifier chức năng
-- [ ] Đổi tài liệu Nhóm G (`README.md`, `README.en.md`, các `CLAUDE.md`, `.rtk-usage.md`, `docs/Business-Document.md`)
-- [ ] Đổi tên file `assets/deplao-overview-map.svg` → tên mới, cập nhật các chỗ tham chiếu
-- [ ] Build renderer + chạy thử `npm run dev` để xác nhận UI hiển thị đúng "ZaloCRM" ở các vị trí chính (title bar, sidebar, tray, settings, changelog)
+### Giai đoạn 1 — An toàn ✅ Hoàn thành (2026-08-29, chi tiết mục 8)
+- [x] Đổi chuỗi hiển thị trong toàn bộ Nhóm E (`src/ui/**`, ~20 file)
+- [x] Đổi chuỗi hiển thị trong Nhóm D (landing site — trừ `constants.ts` phần URL/domain, xem mục 4)
+- [x] Rà từng vị trí trong Nhóm F, đổi các comment/log không phải identifier chức năng
+- [x] Đổi tài liệu Nhóm G (`README.md`, `README.en.md`, các `CLAUDE.md`, `.rtk-usage.md`, `docs/Business-Document.md`)
+- [x] Đổi tên file `assets/deplao-overview-map.svg` → `assets/zalocrm-overview-map.svg`, cập nhật các chỗ tham chiếu
+- [x] Build renderer + chạy thử `npm run dev` để xác nhận UI hiển thị đúng "ZaloCRM" — người dùng xác nhận OK (2026-09-05, xem mục 10)
 
-### Giai đoạn 2 — Cần quyết định trước (xem mục 4)
-- [ ] `package.json`: `name`, `build.productName`, `build.appId`, `build.protocols`, `build.dmg.title`, `homepage`
-- [ ] `electron/main.ts`: `app.setName`, `AppUserModelId`, protocol scheme `deplao://`, tray/tiêu đề cửa sổ
-- [ ] `src/utils/WorkspaceManager.ts`: chiến lược đọc file DB/config cũ (`deplao-tool.db`, `deplao-config.json`) để không mất dữ liệu user hiện tại
-- [ ] `landing/src/constants.ts`: URL/domain (phụ thuộc quyết định về repo `deplao-builder` và domain)
-- [ ] `.github/workflows/build-*.yml`: tên release, repo publish đích (phụ thuộc quyết định về repo ngoài)
+### Giai đoạn 2 — Cần quyết định trước (xem mục 4) ✅ Hoàn thành (2026-08-29, quyết định ở mục 7, chi tiết mục 8)
+- [x] `package.json`: `name`, `build.productName`, `build.appId`, `build.protocols`, `build.dmg.title`, `homepage`
+- [x] `electron/main.ts`: `app.setName`, `AppUserModelId`, protocol scheme `deplao://` → `zalocrm://`, tray/tiêu đề cửa sổ
+- [x] `src/utils/WorkspaceManager.ts`: đổi tên file DB/config mặc định + thêm fallback đọc tên cũ (`deplao-tool.db`, `deplao-config.json`) để không mất dữ liệu user hiện tại
+- [x] `landing/src/constants.ts`: URL/domain → `nguyenquy0710/zalo-crm` + `zalo-crm.quyit.id.vn`
+- [x] `.github/workflows/build-*.yml`: tên release, repo publish đích → `nguyenquy0710/zalo-crm`
 
 ## 4. Risks & Unknowns
+
+> ✅ Cả 4 risk + 2 unknown dưới đây đã được chốt quyết định ở mục 7 và xử lý ở mục 8. Giữ nguyên nội dung gốc bên dưới làm hồ sơ tại sao mỗi quyết định được đưa ra.
 
 - **Risk 1 — Auto-update bị gãy:** electron-updater dựa vào `productName`/`appId` để nhận diện bản cập nhật. Nếu đổi `productName: "Deplao"` → `"ZaloCRM"` và `appId: com.Deplao.app` → `com.ZaloCRM.app`, **user đang cài bản "Deplao" sẽ không tự động nhận được bản cập nhật "ZaloCRM"** — họ phải cài mới thủ công. → **Mitigation:** cần quyết định có chấp nhận rủi ro này (kèm thông báo cho user cũ) hay giữ `appId` cũ và chỉ đổi `productName` hiển thị.
 - **Risk 2 — Mất dữ liệu do đổi tên file DB mặc định:** `DEFAULT_DB_NAME = 'deplao-tool.db'` trong `WorkspaceManager.ts` là tên file thật trên đĩa của user hiện tại. Nếu đổi default filename cho bản mới mà không có logic "đọc file cũ nếu tồn tại", user cập nhật app sẽ thấy app trống dữ liệu. → **Mitigation:** giữ nguyên tên file vật lý cũ trong logic đọc/ghi, chỉ đổi phần hiển thị; hoặc thêm bước migrate 1 lần.
@@ -90,19 +96,19 @@ Không tự ý gộp 2 giai đoạn làm 1 lần edit lớn, vì Nhóm A/B/C n�
 
 ## 5. Success Criteria
 
-- Toàn bộ chuỗi hiển thị cho người dùng cuối (UI renderer, landing site, tài liệu công khai) hiển thị "ZaloCRM" thay vì "Deplao", xác nhận bằng chạy `npm run dev` và duyệt qua các màn hình chính (title bar, sidebar, tray, settings/changelog, landing site).
-- Không có chuỗi "Deplao" còn sót trong Nhóm D–H (grep lại `Deplao|deplao` sau khi sửa, kết quả chỉ còn lại các vị trí đã cố ý giữ nguyên ở Giai đoạn 2 + `yarn.lock`/`package-lock.json` tự sinh).
-- Với các mục Giai đoạn 2: mỗi mục có quyết định rõ ràng bằng văn bản (giữ nguyên / đổi có kèm migration / đổi thẳng chấp nhận rủi ro) trước khi code, không tự suy đoán.
-- Không có báo cáo mất dữ liệu hoặc lỗi auto-update từ user hiện tại sau khi rollout (nếu áp dụng Giai đoạn 2).
+- [x] Toàn bộ chuỗi hiển thị cho người dùng cuối (UI renderer, landing site, tài liệu công khai) hiển thị "ZaloCRM" thay vì "Deplao" — xác nhận bằng build + chạy thực tế, người dùng báo OK (2026-09-05, mục 10).
+- [x] Không có chuỗi "Deplao" còn sót trong Nhóm D–H — grep lại `deplao` case-insensitive toàn repo chỉ còn: hằng số legacy cố ý trong `WorkspaceManager.ts`, chính file plan này, và 3 lockfile tự sinh (mục 8.9).
+- [x] Với các mục Giai đoạn 2: mỗi mục có quyết định rõ ràng bằng văn bản trước khi code — xem bảng quyết định ở mục 7.
+- [~] Không có báo cáo mất dữ liệu/lỗi auto-update từ user hiện tại sau rollout — **không áp dụng**, người dùng xác nhận không có khách hàng cũ đang dùng bản "Deplao" (mục 10), nên rủi ro này không phát sinh trong thực tế.
 
 ## 6. Questions / Dependencies
 
-- Repo `babyvibe/deplao-builder` (nơi publish release + deploy landing) có được đổi tên/thay thế bằng repo mới cho "ZaloCRM" không, hay vẫn dùng nguyên repo đó?
-- Domain `deplaoapp.com` — giữ nguyên hay đã có domain mới cho ZaloCRM?
-- Có chấp nhận rủi ro auto-update bị gián đoạn cho user đang dùng bản "Deplao" khi đổi `appId`/`productName`, hay cần một bản cầu nối (vẫn giữ `appId` cũ, chỉ đổi tên hiển thị) trước?
-- Custom protocol `deplao://` — có ai/hệ thống nào đang phụ thuộc vào scheme này không (để quyết định có cần giữ song song `zalocrm://` + `deplao://`)?
+> ✅ Cả 4 câu hỏi dưới đây đã được trả lời — xem bảng quyết định ở mục 7.
 
-Sau khi có câu trả lời cho 4 câu hỏi trên, sẽ cập nhật lại kế hoạch này (đổi `status` sang `in_progress`) và bắt đầu Giai đoạn 1 trước — vì Giai đoạn 1 không phụ thuộc vào các câu trả lời này.
+- ~~Repo `babyvibe/deplao-builder` (nơi publish release + deploy landing) có được đổi tên/thay thế bằng repo mới cho "ZaloCRM" không, hay vẫn dùng nguyên repo đó?~~ → Gộp về `nguyenquy0710/zalo-crm`.
+- ~~Domain `deplaoapp.com` — giữ nguyên hay đã có domain mới cho ZaloCRM?~~ → `zalo-crm.quyit.id.vn`.
+- ~~Có chấp nhận rủi ro auto-update bị gián đoạn cho user đang dùng bản "Deplao" khi đổi `appId`/`productName`?~~ → Đổi thẳng, chấp nhận rủi ro (và trên thực tế không có khách cũ nên rủi ro không phát sinh — mục 10).
+- ~~Custom protocol `deplao://` — có ai/hệ thống nào đang phụ thuộc vào scheme này không?~~ → Đổi hẳn sang `zalocrm://`, không giữ song song.
 
 ---
 
@@ -135,21 +141,22 @@ Người dùng đã trả lời 5 câu hỏi mở (4 câu ở mục 6 + 1 câu b
 7. **`CLAUDE.md` (root), `docs/CLAUDE.md`, `docs/Business-Document.md`, `landing/CLAUDE.md`**: viết lại phần mô tả kiến trúc "2 repo tách biệt" (source vs. builder ngoài) — không còn đúng sau khi gộp về 1 repo — thành mô tả chính xác hiện tại (cùng 1 repo `nguyenquy0710/zalo-crm` vừa là source vừa là nơi publish release + GitHub Pages).
 8. **Không đụng tới**: `yarn.lock`, `package-lock.json`, `landing/package-lock.json` (sẽ tự đồng bộ khi chạy lại `yarn install`/`npm install` — người dùng cần tự chạy trước khi build); mọi mention "babyvibe" **không** đi kèm "deplao-builder" (ví dụ author field, LICENSE, QR donation, affiliate program) — đây là tên tác giả/thương hiệu khác, ngoài phạm vi đổi tên "Deplao"→"ZaloCRM".
 9. **Kiểm tra**: `node -e "JSON.parse(...)"` cho `package.json` và `landing/package.json` (hợp lệ); `npx tsc -p tsconfig.electron.json --noEmit` chạy sạch, không lỗi type sau toàn bộ thay đổi (kể cả logic mới trong `WorkspaceManager.ts`); grep lại `deplao` case-insensitive toàn repo → chỉ còn đúng các vị trí cố ý giữ (hằng số legacy trong `WorkspaceManager.ts`, file plan này, và 3 lockfile).
+10. **Rà lại lần 2 (2026-09-05, khi review giai đoạn)**: grep chuỗi `zalocrm`/`github.io` để tìm nốt các trường hợp phép thay thế mù đã map "đúng chữ nhưng sai nghĩa" — phát hiện thêm 1 comment trong `src/services/facebook/FacebookService.ts:515` (link bug tracker placeholder `github.com/zalocrm/builder/issues/...` — bị ghép nhầm owner/tên do sed, không phải link thật) → sửa lại thành `github.com/nguyenquy0710/zalo-crm/issues/...` cho nhất quán với các comment link khác trong repo. Không phát hiện thêm identifier chức năng nào khác (đã loại trừ Unknown 2 ở mục 4 — các chuỗi "deplao" còn lại trong `HttpClientService.ts` chỉ là fallback tên file DB, không phải User-Agent).
 
 ## 9. Trạng thái hiện tại
 
-**Chưa commit.** Toàn bộ thay đổi đang ở working tree, một phần đã bị `git mv` tự động stage (rename file asset). Lưu ý: repo đang có sẵn một số file **đã được stage từ trước phiên làm việc này** (không liên quan đến việc đổi tên) — `.dockerignore`, `Dockerfile`, `docker-compose.yml`, `docker/entrypoint.sh` (tính năng Docker/headless deploy), và các file mới dưới `src/ui/lib/web/` (web runtime shim) — đây là công việc dang dở của người dùng, **không phải do phiên này tạo ra**; phiên này chỉ chạy sed đổi nội dung "Deplao"→"ZaloCRM" bên trong `Dockerfile`/`docker-compose.yml` vì chúng có chứa thương hiệu cũ (biến `DEPLAO_HEADLESS`→`ZALOCRM_HEADLESS`), không thay đổi gì khác về mặt tính năng của chúng.
+**Chưa commit** (tính đến 2026-09-05). Toàn bộ thay đổi đang ở working tree, một phần đã bị `git mv` tự động stage (rename file asset). Lưu ý: repo đang có sẵn một số file **đã được stage từ trước phiên làm việc này** (không liên quan đến việc đổi tên) — `.dockerignore`, `Dockerfile`, `docker-compose.yml`, `docker/entrypoint.sh` (tính năng Docker/headless deploy), và các file mới dưới `src/ui/lib/web/` (web runtime shim) — đây là công việc dang dở của người dùng, **không phải do phiên này tạo ra**; phiên này chỉ chạy sed đổi nội dung "Deplao"→"ZaloCRM" bên trong `Dockerfile`/`docker-compose.yml` vì chúng có chứa thương hiệu cũ (biến `DEPLAO_HEADLESS`→`ZALOCRM_HEADLESS`), không thay đổi gì khác về mặt tính năng của chúng.
 
-Chưa chạy `npm run dev` / build thực tế để xác nhận UI hiển thị đúng bằng mắt (theo Success Criteria mục 5) — chỉ mới xác nhận qua type-check tĩnh.
+Đã build + chạy thực tế và người dùng xác nhận UI hiển thị đúng "ZaloCRM" (2026-09-05, mục 10) — Success Criteria mục 5 coi như đã đạt đủ, chỉ còn 2 việc cấu hình hạ tầng ngoài code (DNS domain, GH_TOKEN) chưa xong, xem mục 10.
 
 ## 10. Việc còn mở (chưa làm, để quyết định sau)
 
-- [ ] Chạy `npm run dev` (hoặc `landing`: `npm run build` + preview) để xác nhận trực quan UI/landing hiển thị đúng "ZaloCRM" và không vỡ layout.
-- [ ] Chạy lại `yarn install` (root) và `npm install` (trong `landing/`) để đồng bộ `yarn.lock`/`package-lock.json`/`landing/package-lock.json` theo `name` mới trong `package.json`.
+- [x] ~~Chạy `npm run dev` (hoặc `landing`: `npm run build` + preview) để xác nhận trực quan UI/landing hiển thị đúng "ZaloCRM" và không vỡ layout.~~ Đã build, chạy và xác nhận OK (người dùng xác nhận 2026-09-05).
+- [x] ~~Chạy lại `yarn install` (root) và `npm install` (trong `landing/`) để đồng bộ `yarn.lock`/`package-lock.json`/`landing/package-lock.json` theo `name` mới trong `package.json`.~~ Đã chạy (người dùng xác nhận 2026-09-05).
 - [ ] Xác nhận domain `zalo-crm.quyit.id.vn` đã trỏ DNS + có sẵn endpoint `/api/tracking/page` tương ứng trước khi build production (nếu chưa, `TrackingService.ts` sẽ gọi API lỗi — không crash app nhưng mất tracking).
 - [ ] Tạo secret `GH_TOKEN` có quyền push Release cho repo `nguyenquy0710/zalo-crm` nếu workflow CI trước đây dùng PAT scope riêng cho `babyvibe/deplao-builder` (không thuộc phạm vi sửa code, cần cấu hình phía GitHub Settings).
-- [ ] Thông báo cho người dùng hiện tại (đang cài bản "Deplao") về việc cần cài lại thủ công bản "ZaloCRM" do đổi `appId`, vì auto-update sẽ không hoạt động xuyên bản (rủi ro đã được người dùng chấp nhận ở mục 7).
-- [ ] Cân nhắc dọn tài liệu README/CLAUDE.md nếu còn phát hiện thêm mô tả kiến trúc cũ (2 repo tách biệt) ở những nơi chưa rà tới ngoài các file đã liệt kê ở mục 8.7.
+- [x] ~~Thông báo cho người dùng hiện tại (đang cài bản "Deplao") về việc cần cài lại thủ công bản "ZaloCRM" do đổi `appId`.~~ **Bỏ qua có chủ đích** — không có khách hàng cũ đang dùng bản "Deplao" cần thông báo (xác nhận 2026-09-05), nên rủi ro auto-update gián đoạn ở mục 7 không còn áp dụng trong thực tế.
+- [x] ~~Cân nhắc dọn tài liệu README/CLAUDE.md nếu còn phát hiện thêm mô tả kiến trúc cũ (2 repo tách biệt).~~ Đã grep lại `repo riêng biệt|repo tách biệt|repo ngoài|external repo` toàn repo (2026-09-05) — sạch, không còn sót ngoài các file đã sửa ở mục 8.7.
 
 ## 11. Bài học rút ra
 

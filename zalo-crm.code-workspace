@@ -1,8 +1,21 @@
 {
-	"folders": [
-		{
-			"path": "."
-		}
-	],
-	"settings": {}
+  "folders": [
+    {
+      "path": "."
+    },
+    {
+      "name": "zalo-runtime",
+      "path": "C:\\Users\\nhquydev\\AppData\\Roaming\\ZaloCRM"
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/.git": true,
+      "**/.DS_Store": true,
+      "**/node_modules": true,
+      "**/dist-electron": true,
+      "**/dist-electron-build": true,
+      "**/.playwright-mcp": true
+    }
+  }
 }
