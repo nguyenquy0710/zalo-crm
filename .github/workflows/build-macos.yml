@@ -1,4 +1,4 @@
-# ─── Build Deplao cho macOS ─────────────────────────────────────────────────
+# ─── Build ZaloCRM cho macOS ─────────────────────────────────────────────────
 # Chạy trên macOS runner (GitHub Actions) vì:
 #   1. bytenode compile V8 bytecode PHẢI chạy trên target OS + arch
 #   2. ffmpeg-static download binary theo platform khi npm install
@@ -117,13 +117,13 @@ jobs:
           # CSC_LINK: ${{ secrets.CSC_LINK }}
           # CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
 
-      - name: 🚀 Publish .dmg lên deplao-builder
+      - name: 🚀 Publish .dmg lên GitHub Releases
         if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.publish == 'true'
         uses: softprops/action-gh-release@v2
         with:
-          repository: babyvibe/deplao-builder
+          repository: nguyenquy0710/zalo-crm
           tag_name: ${{ steps.get_tag.outputs.tag }}
-          name: "Deplao ${{ steps.get_tag.outputs.tag }}"
+          name: "ZaloCRM ${{ steps.get_tag.outputs.tag }}"
           files: |
             dist-electron-build/*.dmg
             dist-electron-build/*.blockmap
@@ -135,8 +135,8 @@ jobs:
           fail_on_unmatched_files: false
 
       # ─── File .dmg sau khi publish ──────────────────────────────────────────
-      # Xem release tại: https://github.com/babyvibe/deplao-builder/releases
+      # Xem release tại: https://github.com/nguyenquy0710/zalo-crm/releases
       # Link tải cố định:
-      #   https://github.com/babyvibe/deplao-builder/releases/latest/download/Deplao-{version}-arm64.dmg
+      #   https://github.com/nguyenquy0710/zalo-crm/releases/latest/download/ZaloCRM-{version}-arm64.dmg
       # ─────────────────────────────────────────────────────────────────────────
 

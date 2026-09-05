@@ -1,4 +1,4 @@
-# ─── Build Deplao cho Windows ────────────────────────────────────────────────
+# ─── Build ZaloCRM cho Windows ────────────────────────────────────────────────
 # Trigger: push tag v* HOẶC chạy tay (workflow_dispatch)
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -88,9 +88,9 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.publish == 'true'
         uses: softprops/action-gh-release@v2
         with:
-          repository: babyvibe/deplao-builder
+          repository: nguyenquy0710/zalo-crm
           tag_name: ${{ steps.get_tag.outputs.tag }}
-          name: "Deplao ${{ steps.get_tag.outputs.tag }}"
+          name: "ZaloCRM ${{ steps.get_tag.outputs.tag }}"
           files: |
             dist-electron-build/*.exe
             dist-electron-build/*.blockmap
@@ -102,7 +102,7 @@ jobs:
           fail_on_unmatched_files: false
 
       # ─── File .exe sau khi publish ───────────────────────────────────────────
-      # Xem release tại: https://github.com/babyvibe/deplao-builder/releases
+      # Xem release tại: https://github.com/nguyenquy0710/zalo-crm/releases
       # Link tải cố định:
-      #   https://github.com/babyvibe/deplao-builder/releases/latest/download/Deplao-Setup-{version}.exe
+      #   https://github.com/nguyenquy0710/zalo-crm/releases/latest/download/ZaloCRM-Setup-{version}.exe
 

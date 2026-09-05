@@ -1,4 +1,4 @@
-# ─── Build Deplao - Windows + macOS cùng lúc ─────────────────────────────────
+# ─── Build ZaloCRM - Windows + macOS cùng lúc ─────────────────────────────────
 # Workflow tổng hợp: trigger cả 2 job song song, publish lên cùng 1 Release tag
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -105,9 +105,9 @@ jobs:
         if: needs.resolve-tag.outputs.should_publish == 'true'
         uses: softprops/action-gh-release@v2
         with:
-          repository: babyvibe/deplao-builder
+          repository: nguyenquy0710/zalo-crm
           tag_name: ${{ needs.resolve-tag.outputs.tag }}
-          name: "Deplao ${{ needs.resolve-tag.outputs.tag }}"
+          name: "ZaloCRM ${{ needs.resolve-tag.outputs.tag }}"
           files: |
             dist-electron-build/*.exe
             dist-electron-build/*.blockmap
@@ -158,9 +158,9 @@ jobs:
         if: needs.resolve-tag.outputs.should_publish == 'true'
         uses: softprops/action-gh-release@v2
         with:
-          repository: babyvibe/deplao-builder
+          repository: nguyenquy0710/zalo-crm
           tag_name: ${{ needs.resolve-tag.outputs.tag }}
-          name: "Deplao ${{ needs.resolve-tag.outputs.tag }}"
+          name: "ZaloCRM ${{ needs.resolve-tag.outputs.tag }}"
           files: |
             dist-electron-build/*.dmg
             dist-electron-build/*.blockmap
@@ -228,9 +228,9 @@ jobs:
         if: needs.resolve-tag.outputs.should_publish == 'true'
         uses: softprops/action-gh-release@v2
         with:
-          repository: babyvibe/deplao-builder
+          repository: nguyenquy0710/zalo-crm
           tag_name: ${{ needs.resolve-tag.outputs.tag }}
-          name: "Deplao ${{ needs.resolve-tag.outputs.tag }}"
+          name: "ZaloCRM ${{ needs.resolve-tag.outputs.tag }}"
           files: |
             dist-electron-build/*.AppImage
             dist-electron-build/*.deb
