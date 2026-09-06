@@ -512,6 +512,12 @@ class HttpRelayService {
         if (req.method === 'POST' && url === '/api/auth/heartbeat') {
             return this.handleHeartbeat(req, res);
         }
+        // [nqdev] Bootstrap employee đầu tiên khi chưa có employee nào - dùng cho
+        // triển khai headless/Docker (không có UI desktop nào gọi employee:create qua IPC).
+        // Tự khoá lại ngay khi đã có >=1 employee, tránh bị lợi dụng tạo tài khoản trái phép.
+        if (req.method === 'POST' && url === '/api/setup/bootstrap-admin') {
+            return this.handleBootstrapAdmin(req, res);
+        }
 
         // ── Proxy action ──────────────────────────────────────────────
         if (req.method === 'POST' && url === '/api/proxy/action') {
@@ -637,6 +643,46 @@ class HttpRelayService {
                 });
             } catch (err: any) {
                 Logger.error(`[HttpRelayService] Login error: ${err.message}`);
+                this.json(res, 400, { success: false, error: 'Request không hợp lệ' });
+            }
+        });
+    }
+
+    // [nqdev] Bootstrap employee "boss" đầu tiên cho triển khai headless/Docker - xem
+    // ghi chú ở route đăng ký phía trên. Không đi qua BOSS_ONLY_CHANNELS/executeProxyAction
+    // (route riêng, không phải /api/proxy/action) vì lúc này chưa có employee nào để xác
+    // thực JWT - an toàn nhờ điều kiện "chỉ chạy khi getEmployees().length === 0".
+    private handleBootstrapAdmin(req: http.IncomingMessage, res: http.ServerResponse): void {
+        this.readBody(req, async (body) => {
+            try {
+                const empSvc = EmployeeService.getInstance();
+                if (empSvc.getEmployees().length > 0) {
+                    return this.json(res, 403, { success: false, error: 'Đã có employee - chỉ dùng endpoint này cho lần khởi tạo đầu tiên' });
+                }
+
+                const { username, password, display_name } = JSON.parse(body);
+                if (!username || !password) {
+                    return this.json(res, 400, { success: false, error: 'Thiếu username hoặc password' });
+                }
+
+                const result = await empSvc.createEmployee({
+                    username, password,
+                    display_name: display_name?.trim() || username,
+                    role: 'boss',
+                });
+                if (!result.success || !result.employee) {
+                    return this.json(res, 400, result);
+                }
+
+                // createEmployee() mặc định tạo permission "all denied" cho employee thường -
+                // admin bootstrap thì cấp full quyền luôn để dùng được ngay.
+                const modules = ['chat', 'friends', 'crm', 'workflow', 'integration', 'analytics', 'ai_assistant', 'settings'];
+                empSvc.setPermissions(result.employee.employee_id, modules.map((module) => ({ module, can_access: true })));
+
+                Logger.log(`[HttpRelayService] 🆕 Bootstrap admin employee created: @${username}`);
+                this.json(res, 200, { success: true, employee: { ...result.employee, password_hash: '' } });
+            } catch (err: any) {
+                Logger.error(`[HttpRelayService] Bootstrap admin error: ${err.message}`);
                 this.json(res, 400, { success: false, error: 'Request không hợp lệ' });
             }
         });
