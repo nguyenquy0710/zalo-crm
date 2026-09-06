@@ -13,6 +13,7 @@ import { handlers as restHandlers } from './handlers/RestApiHandlers';
 import { handleMediaRequest as handleMediaFileServe } from './handlers/MediaHandler';
 import { libraryHandlers } from './handlers/LibraryHandler';
 import FileStorageService from '../file/FileStorageService';
+import openapiSpec from './openapi/openapiSpec';
 
 interface RegisteredEmployee {
     employee_id: string;
@@ -541,6 +542,19 @@ class HttpRelayService {
             return;
         }
 
+        // [nqdev] Swagger UI cho REST API (server.ts headless không có UI desktop nào để
+        // tự khám phá API) - /api/docs render UI, /api/docs/openapi.json là spec, còn lại
+        // /api/docs/* là static asset (css/js) từ gói swagger-ui-dist.
+        if (req.method === 'GET' && (url === '/api/docs' || url === '/api/docs/')) {
+            return this.serveSwaggerUiHtml(res);
+        }
+        if (req.method === 'GET' && url === '/api/docs/openapi.json') {
+            return this.json(res, 200, openapiSpec);
+        }
+        if (req.method === 'GET' && url.startsWith('/api/docs/')) {
+            return this.serveSwaggerUiAsset(req, res);
+        }
+
         // ── SSE event stream ──────────────────────────────────────────
         if (req.method === 'GET' && url === '/api/events/stream') {
             return this.handleSSEStream(req, res);
@@ -575,6 +589,69 @@ class HttpRelayService {
 
         res.writeHead(404, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Not found' }));
+    }
+
+    // ─── Swagger UI ───────────────────────────────────────────────────
+
+    private serveSwaggerUiHtml(res: http.ServerResponse): void {
+        const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>ZaloCRM Boss Relay API</title>
+  <link rel="stylesheet" href="/api/docs/swagger-ui.css" />
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="/api/docs/swagger-ui-bundle.js"></script>
+  <script>
+    window.onload = () => {
+      window.ui = SwaggerUIBundle({
+        url: '/api/docs/openapi.json',
+        dom_id: '#swagger-ui',
+        presets: [SwaggerUIBundle.presets.apis],
+        layout: 'BaseLayout',
+      });
+    };
+  </script>
+</body>
+</html>`;
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(html);
+    }
+
+    // [nqdev] Static asset (css/js) của swagger-ui-dist - tên file lấy trực tiếp từ URL nên
+    // chặn path traversal ("..", "/") để không đọc được file ngoài thư mục gói swagger-ui-dist.
+    private serveSwaggerUiAsset(req: http.IncomingMessage, res: http.ServerResponse): void {
+        const url = req.url || '';
+        const assetName = decodeURIComponent(url.replace('/api/docs/', '').split('?')[0]);
+        if (!assetName || assetName.includes('..') || assetName.includes('/') || assetName.includes('\\')) {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Not found' }));
+            return;
+        }
+        try {
+            const swaggerUiDist = require('swagger-ui-dist');
+            const assetsDir: string = swaggerUiDist.getAbsoluteFSPath();
+            const filePath = path.join(assetsDir, assetName);
+            if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+                res.writeHead(404, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Not found' }));
+                return;
+            }
+            const ext = path.extname(filePath).toLowerCase();
+            const contentType = ext === '.css' ? 'text/css'
+                : ext === '.js' ? 'application/javascript'
+                : ext === '.png' ? 'image/png'
+                : ext === '.html' ? 'text/html'
+                : 'application/octet-stream';
+            res.writeHead(200, { 'Content-Type': contentType });
+            fs.createReadStream(filePath).pipe(res);
+        } catch (err: any) {
+            Logger.error(`[HttpRelayService] Swagger asset error: ${err.message}`);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Internal error' }));
+        }
     }
 
     // ─── Auth handlers ────────────────────────────────────────────────

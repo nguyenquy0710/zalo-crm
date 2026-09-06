@@ -51,6 +51,7 @@
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
     "socks-proxy-agent": "^10.0.0",
+    "swagger-ui-dist": "^5.17.14",
     "telegram": "^2.26.22",
     "tough-cookie": "^5.0.0",
     "uuid": "^13.0.0",
