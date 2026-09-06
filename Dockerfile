@@ -19,11 +19,13 @@ COPY . .
 
 # Giới hạn heap V8 rõ ràng thay vì để Node tự đoán theo RAM host — trên máy build ít RAM
 # (<1GB), auto-sizing của V8 đôi khi vẫn cấp phát vượt mức khiến bị OOM-kill đột ngột
-# (exit 134) thay vì báo lỗi "heap out of memory" rõ ràng. Default 1536 đủ cho CI/máy build
-# bình thường (GitHub Actions runner ~7GB RAM) — 512 từng đặt cứng ở đây làm CI tự OOM dù
-# thừa RAM. Máy build ít RAM (<1GB, vd Docker Desktop giới hạn thấp) truyền:
+# (exit 134) thay vì báo lỗi "heap out of memory" rõ ràng. 1536 vẫn không đủ trong thực tế:
+# `tsc -p tsconfig.electron.prod.json` peak ~1531MB old-space rồi "Ineffective mark-compact"
+# — đặt cap sát mức peak khiến V8 không còn slack để compact hiệu quả, dẫn tới OOM dù live
+# data chưa vượt cap. Default 4096 chừa nhiều slack, an toàn trên GitHub Actions runner chuẩn
+# (4 vCPU/16GB RAM). Máy build ít RAM (<1GB, vd Docker Desktop giới hạn thấp) truyền:
 #   docker build --build-arg TSC_MAX_OLD_SPACE=400 .
-ARG TSC_MAX_OLD_SPACE=1536
+ARG TSC_MAX_OLD_SPACE=4096
 ENV NODE_OPTIONS="--max-old-space-size=${TSC_MAX_OLD_SPACE}"
 
 RUN npx tsc -p tsconfig.electron.prod.json
