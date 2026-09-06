@@ -3,15 +3,28 @@ name: Testing - ZaloCRM Build Docker Image
 on:
   workflow_dispatch:
 
-env:
-  GHCR_IMAGE: ghcr.io/${{ github.repository }}-testing
-
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+
+    # Dockerfile có 2 stage image tách riêng: "runtime" (backend headless, không
+    # kèm bundle renderer) và "web" (SPA tĩnh qua nginx, không kèm node_modules) -
+    # build cả 2 tuần tự trong cùng job (xem max-parallel bên dưới), dùng chung 1
+    # buildcache (builder stage giống nhau giữa 2 target giúp tiết kiệm thời gian build).
+    strategy:
+      # max-parallel: 1 -> 2 target build tuần tự, không chạy song song. Cả 2 dùng
+      # chung 1 cache-to ref (buildcachetesting) - chạy song song sẽ ghi đè/conflict
+      # khi cả 2 cùng push cache lên cùng 1 tag registry cùng lúc.
+      max-parallel: 1
+      matrix:
+        include:
+          - target: runtime
+            image: zalo-crm-testing
+          - target: web
+            image: zalo-crm-web-testing
 
     steps:
       - uses: actions/checkout@v4
@@ -30,7 +43,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ env.GHCR_IMAGE }}
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
           tags: |
             type=raw,value=26.8.${{ github.run_number }}-testing
 
@@ -40,11 +53,12 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          target: ${{ matrix.target }}
           push: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=${{ env.GHCR_IMAGE }}:buildcachetesting
-          cache-to: type=registry,ref=${{ env.GHCR_IMAGE }}:buildcachetesting,mode=max
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/zalo-crm-testing:buildcachetesting
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/zalo-crm-testing:buildcachetesting,mode=max
           platforms: linux/amd64
           provenance: false
           sbom: false

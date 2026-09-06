@@ -6,16 +6,34 @@ on:
       - "v*"
   workflow_dispatch:
 
-env:
-  GHCR_IMAGE: ghcr.io/${{ github.repository }}
-  DOCKERHUB_IMAGE: ${{ secrets.DOCKER_USERNAME }}/zalo-crm
-
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+
+    # Dockerfile có 2 stage image tách riêng: "runtime" (backend headless, không
+    # kèm bundle renderer) và "web" (SPA tĩnh qua nginx, không kèm node_modules) -
+    # publish thành 2 image riêng, mỗi cái nhỏ gọn hơn 1 image gộp cả 2. max-parallel: 1
+    # để tránh 2 job cùng ghi buildcache lên chung 1 tag registry cùng lúc.
+    strategy:
+      max-parallel: 1
+      matrix:
+        include:
+          - target: runtime
+            ghcr_image: zalo-crm
+            dockerhub_image: zalo-crm
+          - target: web
+            ghcr_image: zalo-crm-web
+            dockerhub_image: zalo-crm-web
+
+    env:
+      GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/${{ matrix.ghcr_image }}
+      DOCKERHUB_IMAGE: ${{ secrets.DOCKER_USERNAME }}/${{ matrix.dockerhub_image }}
+      # Cache dùng chung 1 ref cho cả 2 target - cả 2 chia sẻ stage "builder" giống
+      # hệt nhau nên build "web" sau "runtime" (hoặc ngược lại) sẽ hit cache có sẵn.
+      CACHE_REF: ghcr.io/${{ github.repository_owner }}/zalo-crm:buildcache
 
     steps:
       - uses: actions/checkout@v4
@@ -51,11 +69,12 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          target: ${{ matrix.target }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=${{ env.GHCR_IMAGE }}:buildcache
-          cache-to: type=registry,ref=${{ env.GHCR_IMAGE }}:buildcache,mode=max
+          cache-from: type=registry,ref=${{ env.CACHE_REF }}
+          cache-to: type=registry,ref=${{ env.CACHE_REF }},mode=max
           platforms: linux/amd64
           provenance: false
           sbom: false
