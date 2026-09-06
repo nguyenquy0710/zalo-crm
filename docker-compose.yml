@@ -7,7 +7,7 @@
 # của cùng Dockerfile (nginx phục vụ /app/dist).
 services:
   api:
-    image: ghcr.io/nguyenquy0710/zalo-crm:26.8.4-manual
+    image: ghcr.io/nguyenquy0710/zalo-crm:26.8.5-manual
     ports:
       - "9900:9900"   # HttpRelayService: REST + Socket.IO
       - "9888:9888"   # IntegrationRegistry webhook
@@ -29,7 +29,7 @@ services:
     build:
       context: .
       target: web
-    image: ghcr.io/nguyenquy0710/zalo-crm-web:26.8.4-manual
+    image: ghcr.io/nguyenquy0710/zalo-crm-web:26.8.5-manual
     ports:
       - "8080:80"
     restart: unless-stopped
