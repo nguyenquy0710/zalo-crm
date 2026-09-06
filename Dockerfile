@@ -19,10 +19,12 @@ COPY . .
 
 # Giới hạn heap V8 rõ ràng thay vì để Node tự đoán theo RAM host — trên máy build ít RAM
 # (<1GB), auto-sizing của V8 đôi khi vẫn cấp phát vượt mức khiến bị OOM-kill đột ngột
-# (exit 134) thay vì báo lỗi "heap out of memory" rõ ràng. Chỉnh số này theo RAM Docker
-# Desktop cấp cho VM — cần chừa lại ~150-200MB cho OS/container runtime, phần còn lại
-# mới đưa cho old-space (RSS thực tế thường cao hơn old-space ~20-30% do new-space/code).
-ENV NODE_OPTIONS="--max-old-space-size=512"
+# (exit 134) thay vì báo lỗi "heap out of memory" rõ ràng. Default 1536 đủ cho CI/máy build
+# bình thường (GitHub Actions runner ~7GB RAM) — 512 từng đặt cứng ở đây làm CI tự OOM dù
+# thừa RAM. Máy build ít RAM (<1GB, vd Docker Desktop giới hạn thấp) truyền:
+#   docker build --build-arg TSC_MAX_OLD_SPACE=400 .
+ARG TSC_MAX_OLD_SPACE=1536
+ENV NODE_OPTIONS="--max-old-space-size=${TSC_MAX_OLD_SPACE}"
 
 RUN npx tsc -p tsconfig.electron.prod.json
 RUN NODE_ENV=production BUILD_TARGET=production npx vite build

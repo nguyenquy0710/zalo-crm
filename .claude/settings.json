@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(rtk proxy *)"
+      "Bash(rtk proxy *)",
+      "Bash(rtk gh *)",
+      "Bash(git credential *)"
     ]
   }
 }
