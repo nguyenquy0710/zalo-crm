@@ -1,9 +1,14 @@
-# Phase 1 (xem plan): chỉ có service "boss" để kiểm chứng backend headless chạy được
+# Phase 1 (xem plan): chỉ có service "zalo-crm" để kiểm chứng backend headless chạy được
 # trong Docker. Service "web" (frontend build cho trình duyệt) + reverse proxy sẽ
 # thêm ở Phase 2/3 của plan.
+#
+# Dùng image đã publish sẵn (ghcr.io/nguyenquy0710/zalo-crm:26.8.1-manual) thay vì
+# `build: .` — tránh build lại cục bộ (máy build ít RAM từng bị OOM, xem Dockerfile).
+# Muốn build lại từ source: đổi lại thành `build: .` hoặc thêm `build:` cùng `image:`
+# để compose vừa build vừa gắn tag đó.
 services:
-  boss:
-    build: .
+  zalo-crm:
+    image: ghcr.io/nguyenquy0710/zalo-crm:26.8.1-manual
     ports:
       - "9900:9900"   # HttpRelayService: REST + Socket.IO
       - "9888:9888"   # IntegrationRegistry webhook

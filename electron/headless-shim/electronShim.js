@@ -10,6 +10,7 @@
  */
 const crypto = require('crypto');
 const path = require('path');
+const fs = require('fs');
 
 // ─── ipcMain ────────────────────────────────────────────────────────────────
 // Mọi registerXxxIpc() gọi ipcMain.handle(channel, fn) NHƯNG cũng tự set fn vào
@@ -45,6 +46,11 @@ const appPaths = {
   logs: path.join(userDataDir, 'logs'),
   home: process.env.HOME || '/data',
 };
+// Electron thật tự tạo thư mục userData khi getPath('userData') được gọi lần đầu;
+// shim này thì không, nên WorkspaceManager/Logger ghi file vào đây (vd workspaces.json)
+// sẽ vỡ ENOENT nếu thư mục chưa tồn tại (volume Docker mount rỗng lần chạy đầu).
+fs.mkdirSync(userDataDir, { recursive: true });
+fs.mkdirSync(appPaths.logs, { recursive: true });
 const app = {
   getPath: (name) => appPaths[name] || userDataDir,
   getName: () => 'ZaloCRM',
