@@ -37,6 +37,7 @@ import { registerLockScreenIpc } from './ipc/lockScreenIpc';
 import { registerLibraryIpc } from './ipc/libraryIpc';
 import WorkspaceManager from '../src/utils/WorkspaceManager';
 import HttpConnectionManager from '../src/services/http/HttpConnectionManager';
+import HttpRelayService from '../src/services/http/HttpRelayService';
 import WorkflowEngineService from '../src/services/workflow/WorkflowEngineService';
 import WebhookGatewayService from '../src/services/workflow/WebhookGatewayService';
 import IntegrationRegistry from '../src/services/integrations/IntegrationRegistry';
@@ -94,6 +95,17 @@ async function main(): Promise<void> {
   reconnectAllFBAccounts().catch((err: any) => console.error('[server] reconnectAllFBAccounts error:', err.message));
   reconnectAllTelegramAccounts().catch((err: any) => console.error('[server] reconnectAllTelegramAccounts error:', err.message));
   startTelegramBotHealthCheck();
+
+  // startupAllWorkspaces() chỉ start HttpRelayService cho workspace có relayAutoStart=true
+  // (cờ desktop, người dùng tự bật trong Settings) - workspace mặc định tạo bởi
+  // WorkspaceManager.migrateFromLegacy() không set cờ này nên relay sẽ không bao giờ start.
+  // Ở headless không có UI Settings nào để bật cờ, và relay (REST + Socket.IO) chính là
+  // API duy nhất để tương tác với server này, nên phải start vô điều kiện (start() đã
+  // idempotent - nếu startupAllWorkspaces cũng start được thì gọi thêm lần nữa vẫn an toàn).
+  HttpRelayService.getInstance().start().then((res) => {
+    if (res.success) console.log(`[server] HttpRelayService started on port ${res.port}`);
+    else console.error('[server] HttpRelayService start failed:', res.error);
+  });
 
   setTimeout(() => startupAllWorkspaces().catch((err: any) => {
     console.error('[server] startupAllWorkspaces error:', err.message);

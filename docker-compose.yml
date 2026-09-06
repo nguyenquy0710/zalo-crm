@@ -6,12 +6,12 @@
 # Service "web": SPA tĩnh cho trình duyệt (Phase 3 trong plan), build từ stage "web"
 # của cùng Dockerfile (nginx phục vụ /app/dist).
 services:
-  zalo-crm:
+  api:
     image: ghcr.io/nguyenquy0710/zalo-crm:26.8.3-manual
     ports:
-      - "9900:9900"   # HttpRelayService: REST + Socket.IO
-      - "9888:9888"   # IntegrationRegistry webhook
-      - "9889:9889"   # WebhookGatewayService
+      - "19900:9900"   # HttpRelayService: REST + Socket.IO
+      - "19888:9888"   # IntegrationRegistry webhook
+      - "19889:9889"   # WebhookGatewayService
     volumes:
       - zalocrm-data:/data
     environment:
@@ -31,7 +31,7 @@ services:
       target: web
     image: ghcr.io/nguyenquy0710/zalo-crm-web:26.8.3-manual
     ports:
-      - "8080:80"
+      - "18080:80"
     restart: unless-stopped
 
 volumes:
