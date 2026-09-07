@@ -312,6 +312,13 @@ export default function AIAssistantDetailPage({ assistantId, onBack }: Props) {
     }
   }, [platform]);
 
+  // 9Router runs as a local proxy - prefill its endpoint when selected and not already set
+  useEffect(() => {
+    if (platform === '9router' && !baseUrl) {
+      setBaseUrl('http://localhost:20128');
+    }
+  }, [platform]);
+
   // Derived: check if current model is a custom (free-text) model not in the predefined list
   const getPlatformModels = () => MODELS_BY_PLATFORM[platform] || [];
   const isCustomModel = model === '__custom__' || ((platform === '9router' || platform === 'openrouter') &&
@@ -689,6 +696,18 @@ export default function AIAssistantDetailPage({ assistantId, onBack }: Props) {
                   )}
                 </div>
               </div>
+
+              {platform === '9router' && (
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">API Endpoint (9Router)</label>
+                  <input type="text" value={baseUrl} onChange={e => setBaseUrl(e.target.value)}
+                    placeholder="http://localhost:20128"
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"/>
+                  <p className="text-[10px] text-gray-400 mt-1">
+                    Địa chỉ 9Router Proxy đang chạy local. Mặc định: http://localhost:20128
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 

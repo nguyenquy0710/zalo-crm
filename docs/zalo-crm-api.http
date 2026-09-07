@@ -1,0 +1,1407 @@
+### ZaloCRM — Boss Relay REST API (HttpRelayService)
+### ─────────────────────────────────────────────────────────────────────────
+### Served by src/services/http/HttpRelayService.ts, default port 9900.
+### Full machine-readable spec: GET {{HostAddress}}/api/docs (Swagger UI)
+###                              GET {{HostAddress}}/api/docs/openapi.json
+### Route source of truth:
+###   - Core 8 endpoints (auth/proxy/sync/media-upload/health/SSE): src/services/http/openapi/openapiSpec.ts
+###   - ~164 query/command/library endpoints: src/services/http/openapi/openapiPaths.generated.ts
+###     (mirrors handleRestApi()/executeRestCommand() in HttpRelayService.ts + handlers/RestApiHandlers.ts)
+###
+### Auth model: every endpoint requires `Authorization: Bearer <token>` (obtained from
+### POST /api/auth/login) EXCEPT /api/auth/login, /api/setup/bootstrap-admin, /api/health,
+### and the unauthenticated file-serving endpoints (/api/media/*, /api/library/file|thumb/*),
+### which rely on tunnel-URL obscurity instead of JWT.
+###
+### Usage: run with the VS Code "REST Client" extension (or IntelliJ HTTP Client).
+### Point @HostAddress at your own Boss instance — do not commit real credentials into this file.
+
+@HostAddress = http://localhost:9900
+@Username = admin
+@Password = {{$dotenv ZALOCRM_ADMIN_PASSWORD}}
+@token = REPLACE_WITH_TOKEN_FROM_LOGIN_RESPONSE
+@zaloId = REPLACE_WITH_ZALO_ID
+@threadId = REPLACE_WITH_THREAD_ID
+@contactId = REPLACE_WITH_CONTACT_ID
+@campaignId = 1
+@id = 1
+
+
+### ═══════════════════════════════════════════════════════════════════════
+### AUTH / SETUP
+### ═══════════════════════════════════════════════════════════════════════
+
+### Bootstrap the first "boss" employee (headless/Docker deploys with no desktop UI).
+### Only works once — locks itself (403) as soon as >=1 employee exists.
+POST {{HostAddress}}/api/setup/bootstrap-admin
+Content-Type: application/json
+
+{
+  "username": "{{Username}}",
+  "password": "{{Password}}",
+  "display_name": "Admin"
+}
+
+### Employee login — returns JWT token + full bootstrap snapshot
+# @name login
+POST {{HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "{{Username}}",
+  "password": "{{Password}}"
+}
+
+### Employee heartbeat — keep session alive, optionally update callback URL (LAN push mode)
+POST {{HostAddress}}/api/auth/heartbeat
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "callbackUrl": "",
+  "sseAlive": true
+}
+
+
+### ═══════════════════════════════════════════════════════════════════════
+### SYSTEM / REALTIME
+### ═══════════════════════════════════════════════════════════════════════
+
+### Healthcheck — no auth required
+GET {{HostAddress}}/api/health
+
+### Full-state snapshot (permissions, accounts, employee list...) — reconnect resync
+GET {{HostAddress}}/api/sync/snapshot
+Authorization: Bearer {{token}}
+
+### Server-Sent Events stream — keep connection open for real-time push
+GET {{HostAddress}}/api/events/stream
+Authorization: Bearer {{token}}
+Accept: text/event-stream
+
+### Initial bootstrap data (conversations, accounts, labels, quick messages, pinned, drafts)
+GET {{HostAddress}}/api/boot
+Authorization: Bearer {{token}}
+
+
+### ═══════════════════════════════════════════════════════════════════════
+### GENERIC PROXY — execute any IPC channel on behalf of the logged-in employee
+### ═══════════════════════════════════════════════════════════════════════
+
+### Example: send a Zalo message via the same IPC channel used by the desktop app
+POST {{HostAddress}}/api/proxy/action
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "channel": "zalo:sendMessage",
+  "params": {
+    "zaloId": "{{zaloId}}",
+    "threadId": "{{threadId}}",
+    "text": "Hello from REST proxy"
+  }
+}
+
+### Upload a file attachment (multipart) — use the returned path/url with /api/proxy/action
+POST {{HostAddress}}/api/media/upload
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=----ZaloCrmBoundary
+
+------ZaloCrmBoundary
+Content-Disposition: form-data; name="file"; filename="example.jpg"
+Content-Type: image/jpeg
+
+< ./example.jpg
+------ZaloCrmBoundary--
+
+
+### ═══════════════════════════════════════════════════════════════════════
+### CONVERSATIONS
+### ═══════════════════════════════════════════════════════════════════════
+
+### Paginated conversations for the employee's assigned account
+GET {{HostAddress}}/api/query/conversations?zaloId={{zaloId}}&limit=50&offset=0
+Authorization: Bearer {{token}}
+
+### Conversations updated since a given timestamp (incremental sync)
+GET {{HostAddress}}/api/query/conversations/updates?zaloId={{zaloId}}&sinceTs=0&limit=50
+Authorization: Bearer {{token}}
+
+### Per-contact flags (spam/blocked markers) for an account
+GET {{HostAddress}}/api/query/conversations/flags?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+### Single conversation/contact by id
+GET {{HostAddress}}/api/query/conversations/{{contactId}}?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+### Pinned conversation thread ids (cached, short TTL)
+GET {{HostAddress}}/api/query/pinned-conversations?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+### Pin or unpin a conversation
+POST {{HostAddress}}/api/command/pinned-conversations
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "zaloId": "{{zaloId}}",
+  "threadId": "{{threadId}}",
+  "isPinned": true
+}
+
+### Set flags on a contact (e.g. spam/blocked markers)
+PATCH {{HostAddress}}/api/command/conversations/{{contactId}}/flags?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "flags": { "spam": false, "blocked": false }
+}
+
+### Set a local alias for a contact
+PATCH {{HostAddress}}/api/command/conversations/{{contactId}}/alias?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "alias": "VIP customer"
+}
+
+### Update a contact's profile fields
+POST {{HostAddress}}/api/command/conversations/update-profile
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "zaloId": "{{zaloId}}",
+  "contactId": "{{contactId}}",
+  "displayName": "Nguyen Van A",
+  "phone": "0900000000",
+  "manualDetails": true
+}
+
+### Delete a conversation
+DELETE {{HostAddress}}/api/command/conversations/{{contactId}}?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+### Update an account's phone number
+POST {{HostAddress}}/api/command/accounts/phone
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "zaloId": "{{zaloId}}",
+  "phone": "0900000000"
+}
+
+
+### ═══════════════════════════════════════════════════════════════════════
+### MESSAGES
+### ═══════════════════════════════════════════════════════════════════════
+
+### Paginated messages for a thread (offset- or cursor-based via `before`)
+GET {{HostAddress}}/api/query/messages?zaloId={{zaloId}}&threadId={{threadId}}&limit=30
+Authorization: Bearer {{token}}
+
+### Messages around a given message id (jump-to-message)
+GET {{HostAddress}}/api/query/messages/around?zaloId={{zaloId}}&threadId={{threadId}}&msgId=REPLACE_MSG_ID&limit=20
+Authorization: Bearer {{token}}
+
+### File-type messages in a thread, paginated
+GET {{HostAddress}}/api/query/messages/file?zaloId={{zaloId}}&threadId={{threadId}}&limit=20&offset=0
+Authorization: Bearer {{token}}
+
+### Media (image/video) messages, optionally scoped to a thread
+GET {{HostAddress}}/api/query/messages/media?zaloId={{zaloId}}&threadId={{threadId}}&limit=20&offset=0
+Authorization: Bearer {{token}}
+
+### Single message by id
+GET {{HostAddress}}/api/query/messages/REPLACE_MSG_ID?zaloId={{zaloId}}&threadId={{threadId}}
+Authorization: Bearer {{token}}
+
+### Total unread message count for an account
+GET {{HostAddress}}/api/query/messages/unread?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+### Messages of a specific msgType in a thread
+GET {{HostAddress}}/api/query/messages/by-type?zaloId={{zaloId}}&threadId={{threadId}}&msgType=text&limit=20
+Authorization: Bearer {{token}}
+
+### Pinned messages in a thread
+GET {{HostAddress}}/api/query/pinned-messages?zaloId={{zaloId}}&threadId={{threadId}}
+Authorization: Bearer {{token}}
+
+### Pin a message in a thread
+POST {{HostAddress}}/api/command/pinned-messages
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "zaloId": "{{zaloId}}",
+  "threadId": "{{threadId}}",
+  "pin": { "msgId": "REPLACE_MSG_ID" }
+}
+
+### Unpin a message from a thread
+DELETE {{HostAddress}}/api/command/pinned-messages/REPLACE_MSG_ID?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "threadId": "{{threadId}}"
+}
+
+### Bring a pinned message to the top (msgId path segment is literally "bring-to-top")
+PUT {{HostAddress}}/api/command/pinned-messages/bring-to-top?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "threadId": "{{threadId}}",
+  "msgId": "REPLACE_MSG_ID"
+}
+
+### Mark all messages in a conversation as read
+POST {{HostAddress}}/api/command/messages/mark-read
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "zaloId": "{{zaloId}}",
+  "contactId": "{{contactId}}"
+}
+
+### Mark a message as recalled/undone
+POST {{HostAddress}}/api/command/messages/mark-recalled
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "zaloId": "{{zaloId}}",
+  "msgId": "REPLACE_MSG_ID"
+}
+
+### Delete one or more messages
+POST {{HostAddress}}/api/command/messages/delete
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "zaloId": "{{zaloId}}",
+  "msgIds": ["REPLACE_MSG_ID"]
+}
+
+### Sync a message reaction from employee to Boss DB
+POST {{HostAddress}}/api/command/messages/reaction
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "zaloId": "{{zaloId}}",
+  "msgId": "REPLACE_MSG_ID"
+}
+
+### Update the locally-cached file paths for a message's attachments
+POST {{HostAddress}}/api/command/messages/local-paths
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "zaloId": "{{zaloId}}",
+  "msgId": "REPLACE_MSG_ID",
+  "threadId": "{{threadId}}",
+  "localPaths": {}
+}
+
+
+### ═══════════════════════════════════════════════════════════════════════
+### SEARCH
+### ═══════════════════════════════════════════════════════════════════════
+
+### Full-text search across messages for an account
+GET {{HostAddress}}/api/search/messages?zaloId={{zaloId}}&q=hello&limit=20
+Authorization: Bearer {{token}}
+
+
+### ═══════════════════════════════════════════════════════════════════════
+### FRIENDS / FRIEND REQUESTS
+### ═══════════════════════════════════════════════════════════════════════
+
+### Friend list for an account
+GET {{HostAddress}}/api/query/friends?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+### Check if a user is a friend of the account
+GET {{HostAddress}}/api/query/friends/check?zaloId={{zaloId}}&userId=REPLACE_USER_ID
+Authorization: Bearer {{token}}
+
+### Last-fetched timestamp of the friend list
+GET {{HostAddress}}/api/query/friends/last-fetched?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+### Bulk-save a batch of friends for an account
+POST {{HostAddress}}/api/command/friends/batch
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "zaloId": "{{zaloId}}",
+  "friends": []
+}
+
+### Add a single friend
+POST {{HostAddress}}/api/command/friends
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "zaloId": "{{zaloId}}",
+  "friend": { "userId": "REPLACE_USER_ID", "displayName": "Nguyen Van A" }
+}
+
+### Remove a friend
+DELETE {{HostAddress}}/api/command/friends/REPLACE_USER_ID?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+### Sent/received friend requests for an account
+GET {{HostAddress}}/api/query/friend-requests?zaloId={{zaloId}}&direction=received&limit=20&offset=0
+Authorization: Bearer {{token}}
+
+### Create or update a friend request
+POST {{HostAddress}}/api/command/friend-requests
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "zaloId": "{{zaloId}}",
+  "request": { "userId": "REPLACE_USER_ID" },
+  "direction": "received"
+}
+
+### Remove a friend request
+DELETE {{HostAddress}}/api/command/friend-requests/REPLACE_USER_ID?zaloId={{zaloId}}&direction=received
+Authorization: Bearer {{token}}
+
+
+### ═══════════════════════════════════════════════════════════════════════
+### GROUPS
+### ═══════════════════════════════════════════════════════════════════════
+
+### Members of a specific group
+GET {{HostAddress}}/api/query/groups/members?zaloId={{zaloId}}&groupId=REPLACE_GROUP_ID
+Authorization: Bearer {{token}}
+
+### All group memberships known for an account
+GET {{HostAddress}}/api/query/groups/all?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+### Add or update a group member
+POST {{HostAddress}}/api/command/groups/members/upsert
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "zaloId": "{{zaloId}}",
+  "groupId": "REPLACE_GROUP_ID",
+  "member": { "userId": "REPLACE_USER_ID" }
+}
+
+### Remove a member from a group
+DELETE {{HostAddress}}/api/command/groups/members/REPLACE_MEMBER_ID?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "groupId": "REPLACE_GROUP_ID"
+}
+
+
+### ═══════════════════════════════════════════════════════════════════════
+### CRM — notes, campaigns, tags, contacts
+### ═══════════════════════════════════════════════════════════════════════
+
+### CRM notes for a contact
+GET {{HostAddress}}/api/query/crm/notes?zaloId={{zaloId}}&contactId={{contactId}}
+Authorization: Bearer {{token}}
+
+### Create or update a CRM note
+POST {{HostAddress}}/api/command/crm/notes
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "zaloId": "{{zaloId}}",
+  "note": { "contactId": "{{contactId}}", "content": "Follow up next week" }
+}
+
+### Delete a CRM note
+DELETE {{HostAddress}}/api/command/crm/notes/{{id}}?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+### CRM campaigns for an account
+GET {{HostAddress}}/api/query/crm/campaigns?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+### Create or update a CRM campaign
+POST {{HostAddress}}/api/command/crm/campaigns
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "zaloId": "{{zaloId}}",
+  "campaign": { "name": "Spring promo", "message": "Hello {{name}}!" }
+}
+
+### Delete a CRM campaign
+DELETE {{HostAddress}}/api/command/crm/campaigns/{{campaignId}}?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+### Clone an existing CRM campaign
+POST {{HostAddress}}/api/command/crm/campaigns/clone
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "campaignId": {{campaignId}},
+  "includeContacts": true,
+  "newName": "Spring promo (copy)"
+}
+
+### Update a CRM campaign's status
+POST {{HostAddress}}/api/command/crm/campaigns/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "campaignId": {{campaignId}},
+  "status": "running"
+}
+
+### Add contacts to a campaign
+POST {{HostAddress}}/api/command/crm/campaigns/contacts
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "campaignId": {{campaignId}},
+  "contacts": [{ "contactId": "{{contactId}}" }]
+}
+
+### Remove specific contacts from a campaign
+DELETE {{HostAddress}}/api/command/crm/campaigns/contacts
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "campaignId": {{campaignId}},
+  "contactIds": ["{{contactId}}"]
+}
+
+### Remove all contacts from a campaign
+DELETE {{HostAddress}}/api/command/crm/campaigns/contacts/all
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "campaignId": {{campaignId}}
+}
+
+### Remove a specific list of contacts from a campaign (POST variant)
+POST {{HostAddress}}/api/command/crm/campaigns/contacts/delete
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "campaignId": {{campaignId}},
+  "contactIds": ["{{contactId}}"]
+}
+
+### Contacts attached to a campaign
+GET {{HostAddress}}/api/query/crm/campaigns/contacts?campaignId={{campaignId}}
+Authorization: Bearer {{token}}
+
+### Campaign send log entries
+GET {{HostAddress}}/api/query/crm/campaigns/send-log?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+### CRM send-queue status for an account
+GET {{HostAddress}}/api/query/crm/queue-status?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+### Top campaign statistics for an account
+GET {{HostAddress}}/api/query/crm/campaigns/stats?zaloId={{zaloId}}&limit=5
+Authorization: Bearer {{token}}
+
+### CRM activity statistics over a time range
+GET {{HostAddress}}/api/query/crm/activity-stats?zaloId={{zaloId}}&sinceTs=0&untilTs=9999999999999
+Authorization: Bearer {{token}}
+
+### CRM tags for an account
+GET {{HostAddress}}/api/query/crm/tags?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+### Create or update a CRM tag (upsert by name)
+POST {{HostAddress}}/api/command/crm/tags
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "zaloId": "{{zaloId}}",
+  "tag": { "name": "VIP", "color": "#f59e0b" }
+}
+
+### Delete a CRM tag
+DELETE {{HostAddress}}/api/command/crm/tags/{{id}}
+Authorization: Bearer {{token}}
+
+### Assign a CRM tag to a contact
+POST {{HostAddress}}/api/command/crm/tags/assign
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "zaloId": "{{zaloId}}",
+  "tagId": {{id}},
+  "contactId": "{{contactId}}"
+}
+
+### Remove a CRM tag from a contact
+DELETE {{HostAddress}}/api/command/crm/tags/{{id}}/contacts/{{contactId}}
+Authorization: Bearer {{token}}
+
+### CRM contacts with filters/pagination
+GET {{HostAddress}}/api/query/crm/contacts?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+### CRM contact statistics for an account
+GET {{HostAddress}}/api/query/crm/contacts/stats?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+
+### ═══════════════════════════════════════════════════════════════════════
+### LABELS (local per-Boss labels)
+### ═══════════════════════════════════════════════════════════════════════
+
+### Local labels for an account
+GET {{HostAddress}}/api/query/labels?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+### All thread→label assignments for an account
+GET {{HostAddress}}/api/query/label-threads?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+### Labels assigned to a specific thread
+GET {{HostAddress}}/api/query/label-threads/thread?zaloId={{zaloId}}&threadId={{threadId}}
+Authorization: Bearer {{token}}
+
+### Create or update a local label
+POST {{HostAddress}}/api/command/labels
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "label": { "zaloId": "{{zaloId}}", "name": "Hot lead", "color": "#ef4444" }
+}
+
+### Delete a local label
+DELETE {{HostAddress}}/api/command/labels/{{id}}
+Authorization: Bearer {{token}}
+
+### Clone all local labels from one account to another
+POST {{HostAddress}}/api/command/labels/clone
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "sourceZaloId": "{{zaloId}}",
+  "targetZaloId": "REPLACE_TARGET_ZALO_ID"
+}
+
+### Enable/disable a local label
+PATCH {{HostAddress}}/api/command/labels/{{id}}/active
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "isActive": true
+}
+
+### Reorder a local label
+PATCH {{HostAddress}}/api/command/labels/{{id}}/order
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "order": 1
+}
+
+### Assign a local label to a thread
+POST {{HostAddress}}/api/command/label-threads
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "zaloId": "{{zaloId}}",
+  "labelId": {{id}},
+  "threadId": "{{threadId}}"
+}
+
+### Remove a local label from a thread
+DELETE {{HostAddress}}/api/command/label-threads
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "zaloId": "{{zaloId}}",
+  "labelId": {{id}},
+  "threadId": "{{threadId}}"
+}
+
+
+### ═══════════════════════════════════════════════════════════════════════
+### QUICK MESSAGES
+### ═══════════════════════════════════════════════════════════════════════
+
+### Local quick messages for an account
+GET {{HostAddress}}/api/query/quick-messages?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+### All local quick messages across all accounts
+GET {{HostAddress}}/api/query/quick-messages/all
+Authorization: Bearer {{token}}
+
+### Create or update a local quick message
+POST {{HostAddress}}/api/command/quick-messages
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "zaloId": "{{zaloId}}",
+  "item": { "shortcut": "/hi", "content": "Xin chào!" }
+}
+
+### Delete a local quick message
+DELETE {{HostAddress}}/api/command/quick-messages/{{id}}?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+### Bulk-replace all local quick messages for an account
+POST {{HostAddress}}/api/command/quick-messages/bulk-replace
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "zaloId": "{{zaloId}}",
+  "items": []
+}
+
+### Clone quick messages from one account to another
+POST {{HostAddress}}/api/command/quick-messages/clone
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "sourceZaloId": "{{zaloId}}",
+  "targetZaloId": "REPLACE_TARGET_ZALO_ID"
+}
+
+### Enable/disable a local quick message
+PATCH {{HostAddress}}/api/command/quick-messages/{{id}}/active
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "isActive": true
+}
+
+### Reorder a local quick message
+PATCH {{HostAddress}}/api/command/quick-messages/{{id}}/order
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "order": 1
+}
+
+
+### ═══════════════════════════════════════════════════════════════════════
+### DRAFTS
+### ═══════════════════════════════════════════════════════════════════════
+
+### All drafts for an account
+GET {{HostAddress}}/api/query/drafts?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+### Draft for a specific thread
+GET {{HostAddress}}/api/query/drafts/single?zaloId={{zaloId}}&threadId={{threadId}}
+Authorization: Bearer {{token}}
+
+### Create or update the draft for a thread
+PUT {{HostAddress}}/api/command/drafts/{{threadId}}?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "content": "Draft message text..."
+}
+
+### Delete the draft for a thread
+DELETE {{HostAddress}}/api/command/drafts/{{threadId}}?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+### Delete drafts older than N days
+POST {{HostAddress}}/api/command/drafts/cleanup
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "days": 30
+}
+
+
+### ═══════════════════════════════════════════════════════════════════════
+### LINKS
+### ═══════════════════════════════════════════════════════════════════════
+
+### Shared links in a thread
+GET {{HostAddress}}/api/query/links?zaloId={{zaloId}}&threadId={{threadId}}&limit=20&offset=0
+Authorization: Bearer {{token}}
+
+### Save a shared link detected in a message
+POST {{HostAddress}}/api/command/links
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "zaloId": "{{zaloId}}",
+  "threadId": "{{threadId}}",
+  "msgId": "REPLACE_MSG_ID",
+  "url": "https://example.com",
+  "title": "Example",
+  "domain": "example.com",
+  "timestamp": 0
+}
+
+
+### ═══════════════════════════════════════════════════════════════════════
+### SETTINGS
+### ═══════════════════════════════════════════════════════════════════════
+
+### Single app setting by key
+GET {{HostAddress}}/api/query/settings/REPLACE_KEY
+Authorization: Bearer {{token}}
+
+### All app settings (key/value list)
+GET {{HostAddress}}/api/query/settings
+Authorization: Bearer {{token}}
+
+### Notification settings for an account
+GET {{HostAddress}}/api/query/settings/notif?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+### Set a single app setting by key
+PUT {{HostAddress}}/api/command/settings/REPLACE_KEY
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "value": "some-value"
+}
+
+
+### ═══════════════════════════════════════════════════════════════════════
+### STICKERS
+### ═══════════════════════════════════════════════════════════════════════
+
+### All sticker packs
+GET {{HostAddress}}/api/query/sticker-packs
+Authorization: Bearer {{token}}
+
+### Cached sticker pack summaries
+GET {{HostAddress}}/api/query/sticker-packs/summaries
+Authorization: Bearer {{token}}
+
+### Recently used stickers
+GET {{HostAddress}}/api/query/stickers/recent?limit=20
+Authorization: Bearer {{token}}
+
+### Stickers by a list of ids (GET, small list)
+GET {{HostAddress}}/api/query/stickers/by-ids?ids=1,2,3
+Authorization: Bearer {{token}}
+
+### Stickers by a list of ids (POST, large list)
+POST {{HostAddress}}/api/query/stickers/by-ids
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "stickerIds": [1, 2, 3]
+}
+
+### Single sticker by id
+GET {{HostAddress}}/api/query/stickers/by-id?stickerId=1
+Authorization: Bearer {{token}}
+
+### Stickers mapped to a keyword
+GET {{HostAddress}}/api/query/stickers/keyword?keyword=haha
+Authorization: Bearer {{token}}
+
+### Bulk-save stickers into the local cache
+POST {{HostAddress}}/api/command/stickers/save
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "stickers": []
+}
+
+### Bulk-save sticker packs into the local cache
+POST {{HostAddress}}/api/command/sticker-packs/save
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "packs": []
+}
+
+### Record a sticker as recently used
+POST {{HostAddress}}/api/command/stickers/recent
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "stickerId": 1
+}
+
+### Save keyword→sticker mapping
+POST {{HostAddress}}/api/command/stickers/keyword
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "keyword": "haha",
+  "stickerIds": [1, 2]
+}
+
+
+### ═══════════════════════════════════════════════════════════════════════
+### BANK CARDS
+### ═══════════════════════════════════════════════════════════════════════
+
+### Saved bank cards for an account
+GET {{HostAddress}}/api/query/bank-cards?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+### Create or update a bank card
+POST {{HostAddress}}/api/command/bank-cards
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "zaloId": "{{zaloId}}",
+  "card": { "bankName": "Vietcombank", "accountNumber": "0011000000000", "accountName": "NGUYEN VAN A" }
+}
+
+### Delete a bank card
+DELETE {{HostAddress}}/api/command/bank-cards/{{id}}?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+
+### ═══════════════════════════════════════════════════════════════════════
+### PROXIES (network proxy pool)
+### ═══════════════════════════════════════════════════════════════════════
+
+### All configured proxies
+GET {{HostAddress}}/api/query/proxies
+Authorization: Bearer {{token}}
+
+### Proxy by id
+GET {{HostAddress}}/api/query/proxies/{{id}}
+Authorization: Bearer {{token}}
+
+### Create or update a proxy
+POST {{HostAddress}}/api/command/proxies
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "proxy": { "host": "127.0.0.1", "port": 8080, "type": "http" }
+}
+
+### Delete a proxy
+DELETE {{HostAddress}}/api/command/proxies/{{id}}
+Authorization: Bearer {{token}}
+
+### Assign a proxy to an account
+POST {{HostAddress}}/api/command/accounts/proxy
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "zaloId": "{{zaloId}}",
+  "proxyId": {{id}}
+}
+
+
+### ═══════════════════════════════════════════════════════════════════════
+### ERP — TASKS / PROJECTS
+### ═══════════════════════════════════════════════════════════════════════
+
+### List ERP projects
+GET {{HostAddress}}/api/query/erp/projects?archived=false
+Authorization: Bearer {{token}}
+
+### List ERP tasks with filters
+GET {{HostAddress}}/api/query/erp/tasks?status=open&limit=20&offset=0
+Authorization: Bearer {{token}}
+
+### Employee's task inbox (assigned/watching/reported)
+GET {{HostAddress}}/api/query/erp/tasks/inbox?filter=week
+Authorization: Bearer {{token}}
+
+### Full task detail
+GET {{HostAddress}}/api/query/erp/tasks/{{id}}
+Authorization: Bearer {{token}}
+
+### Create an ERP task
+POST {{HostAddress}}/api/command/erp/tasks
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "input": { "title": "Follow up with customer", "priority": "medium" }
+}
+
+### Assign a task to one or more employees
+POST {{HostAddress}}/api/command/erp/tasks/assign
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "id": "{{id}}",
+  "employeeIds": ["REPLACE_EMPLOYEE_ID"]
+}
+
+### Add or remove a watcher on a task
+POST {{HostAddress}}/api/command/erp/tasks/watcher
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "taskId": "{{id}}",
+  "employeeId": "REPLACE_EMPLOYEE_ID",
+  "action": "add"
+}
+
+### Add a comment to a task
+POST {{HostAddress}}/api/command/erp/tasks/comment
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "taskId": "{{id}}",
+  "content": "Working on it",
+  "mentions": []
+}
+
+### Add a checklist item to a task
+POST {{HostAddress}}/api/command/erp/tasks/checklist
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "taskId": "{{id}}",
+  "content": "Call the customer"
+}
+
+### Toggle a task checklist item done/not-done
+PATCH {{HostAddress}}/api/command/erp/tasks/checklist/{{id}}/toggle
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "done": true
+}
+
+### Update a task's status
+PATCH {{HostAddress}}/api/command/erp/tasks/{{id}}/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "status": "done"
+}
+
+### Update a task (partial patch)
+PATCH {{HostAddress}}/api/command/erp/tasks/{{id}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "patch": { "title": "Updated title" }
+}
+
+### Delete a task
+DELETE {{HostAddress}}/api/command/erp/tasks/{{id}}
+Authorization: Bearer {{token}}
+
+### Create an ERP project
+POST {{HostAddress}}/api/command/erp/projects
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "CRM Rollout",
+  "description": "Q1 rollout project",
+  "color": "#3b82f6"
+}
+
+
+### ═══════════════════════════════════════════════════════════════════════
+### ERP — HRM (departments / positions / profiles)
+### ═══════════════════════════════════════════════════════════════════════
+
+### List ERP departments
+GET {{HostAddress}}/api/query/erp/departments
+Authorization: Bearer {{token}}
+
+### List ERP positions
+GET {{HostAddress}}/api/query/erp/positions
+Authorization: Bearer {{token}}
+
+### List ERP employee profiles, optionally filtered by department
+GET {{HostAddress}}/api/query/erp/profiles
+Authorization: Bearer {{token}}
+
+### Single ERP employee profile
+GET {{HostAddress}}/api/query/erp/profiles/REPLACE_EMPLOYEE_ID
+Authorization: Bearer {{token}}
+
+
+### ═══════════════════════════════════════════════════════════════════════
+### ERP — CALENDAR
+### ═══════════════════════════════════════════════════════════════════════
+
+### List ERP calendar events overlapping a time range
+GET {{HostAddress}}/api/query/erp/calendar/events?from=0&to=9999999999999
+Authorization: Bearer {{token}}
+
+### Create an ERP calendar event
+POST {{HostAddress}}/api/command/erp/calendar
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "input": { "title": "Team sync", "startAt": 0, "endAt": 0 }
+}
+
+### Update an ERP calendar event (partial patch)
+PATCH {{HostAddress}}/api/command/erp/calendar/{{id}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "patch": { "title": "Team sync (rescheduled)" }
+}
+
+### Delete an ERP calendar event
+DELETE {{HostAddress}}/api/command/erp/calendar/{{id}}
+Authorization: Bearer {{token}}
+
+
+### ═══════════════════════════════════════════════════════════════════════
+### ANALYTICS
+### ═══════════════════════════════════════════════════════════════════════
+
+### Dashboard overview metrics for an account
+GET {{HostAddress}}/api/query/analytics/dashboard?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+### Message volume over time
+GET {{HostAddress}}/api/query/analytics/message-volume?zaloId={{zaloId}}&granularity=day
+Authorization: Bearer {{token}}
+
+### Peak-hours heatmap of message activity
+GET {{HostAddress}}/api/query/analytics/peak-hours?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+### Contact segmentation breakdown
+GET {{HostAddress}}/api/query/analytics/segmentation?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+### CRM campaign performance comparison
+GET {{HostAddress}}/api/query/analytics/campaign-comparison?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+### Friend request analytics over a time range
+GET {{HostAddress}}/api/query/analytics/friend-requests?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+### Contact growth over a time range
+GET {{HostAddress}}/api/query/analytics/contact-growth?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+### Workflow execution analytics
+GET {{HostAddress}}/api/query/analytics/workflows?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+### AI assistant usage analytics (not scoped to a single account)
+GET {{HostAddress}}/api/query/analytics/ai
+Authorization: Bearer {{token}}
+
+### Response-time statistics
+GET {{HostAddress}}/api/query/analytics/response-time?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+### Local-label usage analytics
+GET {{HostAddress}}/api/query/analytics/label-usage?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+
+### ═══════════════════════════════════════════════════════════════════════
+### WORKFLOW (visual automation)
+### ═══════════════════════════════════════════════════════════════════════
+
+### List all workflows
+GET {{HostAddress}}/api/query/workflows
+Authorization: Bearer {{token}}
+
+### Most recent workflow run logs across all workflows
+GET {{HostAddress}}/api/query/workflows/run-logs?limit=20
+Authorization: Bearer {{token}}
+
+### Run logs for a specific workflow
+GET {{HostAddress}}/api/query/workflows/{{id}}/run-logs?limit=20
+Authorization: Bearer {{token}}
+
+### Workflow by id
+GET {{HostAddress}}/api/query/workflows/{{id}}
+Authorization: Bearer {{token}}
+
+### Create or update a workflow (node/edge graph)
+POST {{HostAddress}}/api/command/workflows
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "workflow": { "name": "Welcome new friend", "nodes": [], "edges": [] }
+}
+
+### Enable/disable a workflow
+PATCH {{HostAddress}}/api/command/workflows/{{id}}/toggle
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "enabled": true
+}
+
+### Delete a workflow
+DELETE {{HostAddress}}/api/command/workflows/{{id}}
+Authorization: Bearer {{token}}
+
+
+### ═══════════════════════════════════════════════════════════════════════
+### INTEGRATIONS (POS/payment/shipping)
+### ═══════════════════════════════════════════════════════════════════════
+
+### List configured integrations (KiotViet/Haravan/Sapo/Nhanh/Pancake/Casso/SePay/GHN/GHTK...)
+GET {{HostAddress}}/api/query/integrations
+Authorization: Bearer {{token}}
+
+### Create or update an integration configuration
+POST {{HostAddress}}/api/command/integrations
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "integration": { "type": "kiotviet", "name": "KiotViet main store", "config": {} }
+}
+
+### Enable/disable an integration
+PATCH {{HostAddress}}/api/command/integrations/{{id}}/toggle
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "enabled": true
+}
+
+### Delete an integration configuration
+DELETE {{HostAddress}}/api/command/integrations/{{id}}
+Authorization: Bearer {{token}}
+
+
+### ═══════════════════════════════════════════════════════════════════════
+### AI ASSISTANTS
+### ═══════════════════════════════════════════════════════════════════════
+
+### List AI assistants (API keys masked)
+GET {{HostAddress}}/api/query/ai/assistants
+Authorization: Bearer {{token}}
+
+### AI assistant by id (API key masked)
+GET {{HostAddress}}/api/query/ai/assistants/{{id}}
+Authorization: Bearer {{token}}
+
+### Files attached to an AI assistant
+GET {{HostAddress}}/api/query/ai/assistants/{{id}}/files
+Authorization: Bearer {{token}}
+
+### AI usage statistics
+GET {{HostAddress}}/api/query/ai/usage-stats?days=30
+Authorization: Bearer {{token}}
+
+### AI usage logs
+GET {{HostAddress}}/api/query/ai/usage-logs?limit=50
+Authorization: Bearer {{token}}
+
+### Default AI assistant (API key masked)
+GET {{HostAddress}}/api/query/ai/default
+Authorization: Bearer {{token}}
+
+### AI assistant configured for an account/role
+GET {{HostAddress}}/api/query/ai/account-assistant?zaloId={{zaloId}}&role=suggestion
+Authorization: Bearer {{token}}
+
+### All AI assistant role assignments for an account
+GET {{HostAddress}}/api/query/ai/account-assistants?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+### Send a chat message to an AI assistant (proxies the LLM call through Boss)
+POST {{HostAddress}}/api/command/ai/chat
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "assistantId": "{{id}}",
+  "messages": [{ "role": "user", "content": "Xin chào" }],
+  "maxTokens": 500
+}
+
+### Get AI-generated reply suggestions for a chat history
+POST {{HostAddress}}/api/command/ai/suggest
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "assistantId": "{{id}}",
+  "chatHistory": [{ "role": "user", "content": "Sản phẩm này giá bao nhiêu?" }]
+}
+
+### Create or update an AI assistant configuration
+POST {{HostAddress}}/api/command/ai/assistants
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "assistant": {
+    "name": "Trợ lý bán hàng",
+    "platform": "openai",
+    "apiKey": "REPLACE_API_KEY",
+    "model": "gpt-5.4-mini"
+  }
+}
+
+### Delete an AI assistant
+DELETE {{HostAddress}}/api/command/ai/assistants/{{id}}
+Authorization: Bearer {{token}}
+
+
+### ═══════════════════════════════════════════════════════════════════════
+### LIBRARY (shared media library)
+### ═══════════════════════════════════════════════════════════════════════
+
+### Upload a file to the shared media library (multipart)
+POST {{HostAddress}}/api/library/upload
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=----ZaloCrmBoundary
+
+------ZaloCrmBoundary
+Content-Disposition: form-data; name="zaloId"
+
+{{zaloId}}
+------ZaloCrmBoundary
+Content-Disposition: form-data; name="file"; filename="example.jpg"
+Content-Type: image/jpeg
+
+< ./example.jpg
+------ZaloCrmBoundary--
+
+### Upload a file to the shared media library as base64 JSON (Employee mode)
+POST {{HostAddress}}/api/library/upload/json
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "zaloId": "{{zaloId}}",
+  "fileName": "example.jpg",
+  "mimeType": "image/jpeg",
+  "base64": "REPLACE_BASE64_CONTENT"
+}
+
+### List media library items, paginated
+GET {{HostAddress}}/api/library/items?zaloId={{zaloId}}&page=1&limit=30
+Authorization: Bearer {{token}}
+
+### Single media library item by uuid
+GET {{HostAddress}}/api/library/item/REPLACE_UUID
+Authorization: Bearer {{token}}
+
+### Update a media library item's metadata
+PATCH {{HostAddress}}/api/library/item/REPLACE_UUID
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "tags": "promo,2026"
+}
+
+### Delete a media library item
+DELETE {{HostAddress}}/api/library/item/REPLACE_UUID
+Authorization: Bearer {{token}}
+
+### List media library folders for an account
+GET {{HostAddress}}/api/library/folders?zaloId={{zaloId}}
+Authorization: Bearer {{token}}
+
+### Create a media library folder
+POST {{HostAddress}}/api/library/folders
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "zaloId": "{{zaloId}}",
+  "name": "Product photos",
+  "color": "#22c55e"
+}
+
+### Delete a media library folder
+DELETE {{HostAddress}}/api/library/folders/{{id}}
+Authorization: Bearer {{token}}
+
+### Serve the original file of a media library item (unauthenticated — tunnel security only)
+GET {{HostAddress}}/api/library/file/REPLACE_UUID
+
+### Serve the thumbnail of a media library item (unauthenticated — tunnel security only)
+GET {{HostAddress}}/api/library/thumb/REPLACE_UUID
+
+
+### ═══════════════════════════════════════════════════════════════════════
+### MEDIA (relayed message attachments — distinct from the Library above)
+### ═══════════════════════════════════════════════════════════════════════
+
+### Serve a relayed attachment/thumbnail/avatar by relative path (unauthenticated — tunnel security only)
+### Path shapes: "{zaloId}/{date}/{filename}", "thumb/{zaloId}/{date}/{filename}", "avatar/{zaloId}/{filename}"
+GET {{HostAddress}}/api/media/{{zaloId}}/2026-09-07/example.jpg
+
+
+### ═══════════════════════════════════════════════════════════════════════
+### API DOCS (Swagger UI)
+### ═══════════════════════════════════════════════════════════════════════
+
+### Interactive Swagger UI
+GET {{HostAddress}}/api/docs
+
+### Raw OpenAPI 3.0 spec (JSON)
+GET {{HostAddress}}/api/docs/openapi.json

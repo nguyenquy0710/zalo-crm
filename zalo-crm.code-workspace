@@ -4,6 +4,10 @@
       "path": "."
     },
     {
+      "name": "zalo-crm-data",
+      "path": "E:\\Users\\user_data\\ZaloCRM"
+    },
+    {
       "name": "zalo-runtime",
       "path": "C:\\Users\\nhquydev\\AppData\\Roaming\\ZaloCRM"
     }
