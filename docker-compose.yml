@@ -5,9 +5,10 @@
 #   https://github.com/nguyenquy0710/zalo-crm/pkgs/container/zalo-crm
 # Documentation: https://deplaoapp.com/
 # -----------------------------------------
-# [nqdev] 1 image duy nhất "zalo-crm" gồm cả backend (REST + Socket.IO, port 9900) và web UI
-# (SPA serve trực tiếp từ Node, cùng port) — không còn image "zalo-crm-web"/nginx riêng.
-# Truy cập UI: http://<host>:10030/ — API: http://<host>:10030/api/*
+# [nqdev] 1 image duy nhất "zalo-crm" nhưng chạy 2 tiến trình độc lập bên trong (xem
+# docker/entrypoint.sh): nginx phục vụ web tĩnh (port 80) + Node phục vụ API/Socket.IO
+# (port 9900) — không proxy chung origin, không còn publish image "zalo-crm-web" riêng.
+# Web UI: http://<host>:10031/ — API: http://<host>:10030/api/* (nhập ở màn đăng nhập web)
 # -----------------------------------------
 # START: docker-compose up -d --build --force-recreate --remove-orphans
 # STOP: docker-compose down -v --remove-orphans
@@ -15,21 +16,17 @@
 
 services:
   zalo-crm-10030:
-    image: ghcr.io/nguyenquy0710/zalo-crm:26.8.11-manual
+    image: ghcr.io/nguyenquy0710/zalo-crm:26.8.12-manual
     container_name: zalo-crm-api-10030
     restart: unless-stopped
     # network_mode: host
     ports:
-      - "10030:9900"   # HttpRelayService: REST + Socket.IO (API + Web UI)
-      - "10031:80"     # Web UI (giữ port quen thuộc 80 - listener thứ 2, cùng nội dung với 9900)
+      - "10030:9900"   # HttpRelayService (Node): REST + Socket.IO (API)
+      - "10031:80"     # nginx: Web UI tĩnh (SPA), tiến trình riêng trong cùng container
       #- "10032:9888"   # IntegrationRegistry webhook
       #- "10033:9889"   # WebhookGatewayService
     environment:
       - TZ=Asia/Ho_Chi_Minh
-      # Bật listener thứ 2 trên port 80 trong container (xem HttpRelayService.ts
-      # startWebPortListener) - dùng chung router với 9900 nên API + Web UI hoạt động y hệt
-      # trên cả 2 port. Bỏ dòng này nếu chỉ cần 1 port duy nhất (9900).
-      - ZALOCRM_WEB_PORT=80
       # Khoá mã hoá secret (thay OS keychain) — bắt buộc, tự sinh 1 lần rồi giữ nguyên
       # (đổi khoá = không giải mã lại được secret cũ đã lưu). Ví dụ tạo: openssl rand -hex 32
       # - ZALOCRM_SECRET_KEY=${ZALOCRM_SECRET_KEY:?Cần set ZALOCRM_SECRET_KEY (vd: openssl rand -hex 32)}

@@ -40,21 +40,32 @@ RUN NODE_ENV=production BUILD_TARGET=production npx vite build
 # kích thước node_modules copy sang stage runtime (electron binary một mình đã ~200MB).
 RUN npm prune --omit=dev
 
-# ─── Stage 2: runtime (backend + web UI gộp chung 1 image) ────────────────────
-# [nqdev] Trước đây tách riêng stage "web" (nginx phục vụ SPA tĩnh) + stage "runtime"
-# (backend) thành 2 image publish riêng. Gộp lại 1 image duy nhất "zalo-crm": copy thêm
-# /app/dist (renderer bundle) vào đây, HttpRelayService.ts tự serve SPA qua
-# StaticSpaHandler.ts (route "/") thay vì cần nginx riêng — đơn giản hoá deploy (1 container,
-# 1 port) dù image có to hơn một chút so với khi tách riêng.
+# ─── Stage 2: runtime (backend + web UI, 2 tiến trình chung 1 image) ──────────
+# [nqdev] Đã thử để chính Node tự serve SPA (StaticSpaHandler.ts, xem git history) nhưng
+# gây lỗi truy cập API khi deploy thực tế → rollback về đúng kiến trúc gốc: nginx phục vụ
+# web tĩnh (port 80) và Node phục vụ API+Socket.IO (port 9900) là 2 tiến trình ĐỘC LẬP,
+# KHÔNG proxy /api hay /socket.io qua nginx (WebLoginScreen tự nhập Boss URL, gọi
+# cross-origin — CORS đã mở "*" ở HttpRelayService). Khác bản gốc (từng tách 2 image publish
+# riêng "zalo-crm" + "zalo-crm-web") ở đúng 1 điểm: gộp cả 2 tiến trình vào chung 1
+# Dockerfile/image, khởi động qua docker/entrypoint.sh.
 FROM node:22-bookworm-slim AS runtime
 WORKDIR /app
 
-COPY --from=builder /app/dist ./dist
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends nginx-light \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -f /etc/nginx/sites-enabled/default
+
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY docker/nginx-web.conf /etc/nginx/conf.d/default.conf
+
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist-electron ./dist-electron
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/resources ./resources
 COPY electron/headless-shim ./headless-shim
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # HOME cố định để electronShim.js's app.getPath('userData') (~/.config/ZaloCRM) rơi vào
 # volume /data. ZALOCRM_SECRET_KEY: khoá mã hoá secret (thay OS keychain) — BẮT BUỘC set
@@ -64,10 +75,9 @@ ENV HOME=/data \
 RUN mkdir -p /data && chmod 777 /data
 VOLUME ["/data"]
 
-# 9900: HttpRelayService (REST + Socket.IO Boss<->Employee/web) — port chính, luôn bind.
-# 9888: IntegrationRegistry webhook, 9889: WebhookGatewayService (workflow webhook)
-# 80: listener thứ 2 tuỳ chọn, CHỈ bind khi có env ZALOCRM_WEB_PORT=80 (xem HttpRelayService.ts
-# startWebPortListener) — cùng router với 9900, chỉ để giữ nguyên convention "web ở port 80".
+# 9900: HttpRelayService (REST + Socket.IO Boss<->Employee) — node.
+# 80: nginx phục vụ SPA tĩnh (dist/), fallback về index.html cho mọi route (SPA).
+# 9888: IntegrationRegistry webhook, 9889: WebhookGatewayService (workflow webhook) — node.
 EXPOSE 9900 9888 9889 80
 
-ENTRYPOINT ["node", "--require", "/app/headless-shim/resolveElectronShim.js", "dist-electron/electron/server.js"]
+ENTRYPOINT ["/entrypoint.sh"]

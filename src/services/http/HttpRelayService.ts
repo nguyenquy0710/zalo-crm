@@ -14,14 +14,6 @@ import { handleMediaRequest as handleMediaFileServe } from './handlers/MediaHand
 import { libraryHandlers } from './handlers/LibraryHandler';
 import FileStorageService from '../file/FileStorageService';
 import openapiSpec from './openapi/openapiSpec';
-import { handleStaticSpaRequest } from './handlers/StaticSpaHandler';
-
-// [nqdev] dist/ (bundle renderer React) nằm cạnh dist-electron/ ở gốc app (xem Dockerfile
-// stage runtime và electron-builder "files") - __dirname lúc runtime là
-// .../dist-electron/src/services/http, nên lùi 4 cấp là ra gốc app rồi vào "dist".
-// Dùng __dirname thay vì process.cwd() để đúng cả khi chạy trong app.asar (desktop)
-// lẫn Docker (WORKDIR /app).
-const RENDERER_DIST_DIR = path.join(__dirname, '../../../../dist');
 
 interface RegisteredEmployee {
     employee_id: string;
@@ -74,12 +66,6 @@ interface EmployeeSnapshot {
 class HttpRelayService {
     private static instance: HttpRelayService;
     private httpServer: http.Server | null = null;
-    // [nqdev] Listener thứ 2, tuỳ chọn (chỉ start khi có env ZALOCRM_WEB_PORT — headless/Docker
-    // set, desktop KHÔNG set nên hành vi cũ giữ nguyên 100%) - dùng CHUNG handleHttpRequest với
-    // httpServer chính, nên web UI + API đều hoạt động trên port này y hệt port chính. Lý do có
-    // thêm port riêng: giữ nguyên convention "port 80 cho web" từ khi còn tách 2 image nginx/node,
-    // dù giờ gộp lại chỉ còn 1 image/process.
-    private webHttpServer: http.Server | null = null;
     private running = false;
     private port = 9900;
     private employees = new Map<string, RegisteredEmployee>(); // employeeId → employee
@@ -402,7 +388,6 @@ class HttpRelayService {
                             Logger.warn(`[HttpRelayService] Tunnel auto-restart failed: ${err.message}`);
                         });
                     }
-                    this.startWebPortListener();
                     resolve({ success: true, port: this.port });
                 });
                 this.httpServer!.on('error', (err: any) => {
@@ -416,35 +401,11 @@ class HttpRelayService {
         }
     }
 
-    // [nqdev] Listener thứ 2 tuỳ chọn trên ZALOCRM_WEB_PORT (vd 80) - dùng chung
-    // handleHttpRequest với port chính nên web UI + API đều hoạt động y hệt trên port này.
-    // Chỉ activate khi biến env được set (Docker/headless) - desktop không set nên không
-    // đụng gì tới cổng 80 trên máy người dùng. Lỗi bind (thiếu quyền/đã bị chiếm) chỉ log
-    // warning, không làm sập server chính ở this.port.
-    private startWebPortListener(): void {
-        const webPortEnv = process.env.ZALOCRM_WEB_PORT;
-        if (!webPortEnv) return;
-        const webPort = parseInt(webPortEnv, 10);
-        if (!webPort || webPort === this.port) return;
-
-        this.webHttpServer = http.createServer((req, res) => this.handleHttpRequest(req, res));
-        this.webHttpServer.listen(webPort, () => {
-            Logger.log(`[HttpRelayService] ✅ Web port listener started on port ${webPort} (ZALOCRM_WEB_PORT)`);
-        });
-        this.webHttpServer.on('error', (err: any) => {
-            Logger.warn(`[HttpRelayService] ⚠️ Web port ${webPort} listener failed: ${err.message} (main server on ${this.port} unaffected)`);
-        });
-    }
-
     public stop(): { success: boolean } {
         try {
             if (this.httpServer) {
                 this.httpServer.close();
                 this.httpServer = null;
-            }
-            if (this.webHttpServer) {
-                this.webHttpServer.close();
-                this.webHttpServer = null;
             }
             this.stopOfflineCheck();
             // Stop Socket.IO
@@ -575,9 +536,7 @@ class HttpRelayService {
         }
 
         // ── Healthcheck ───────────────────────────────────────────────
-        // [nqdev] Bỏ "/" khỏi route này - "/" giờ serve SPA (dist/index.html), xem
-        // static SPA fallback ở cuối handleHttpRequest. Dùng /api/health để healthcheck.
-        if (req.method === 'GET' && url === '/api/health') {
+        if (req.method === 'GET' && (url === '/api/health' || url === '/')) {
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ status: 'ok', relay: this.running, port: this.port }));
             return;
@@ -626,13 +585,6 @@ class HttpRelayService {
         }
         if (req.method === 'POST' && url.startsWith('/api/library/')) {
             return this.handleRestApi(req, res);
-        }
-
-        // [nqdev] SPA fallback - mọi GET không khớp /api/* nào ở trên (kể cả "/") thì thử
-        // serve dist/ (renderer bundle) trước khi trả 404. Gộp web+api vào 1 image/container
-        // thay vì tách riêng nginx - xem RENDERER_DIST_DIR ở đầu file.
-        if (req.method === 'GET' && !url.startsWith('/api/')) {
-            if (handleStaticSpaRequest(req, res, RENDERER_DIST_DIR)) return;
         }
 
         res.writeHead(404, { 'Content-Type': 'application/json' });
