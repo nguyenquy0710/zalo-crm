@@ -1,15 +1,15 @@
-# Service "zalo-crm": backend headless (Phase 1 trong plan). Dùng image đã publish
+# Service "api": backend + web UI gộp chung 1 image "zalo-crm" (Node tự serve dist/ qua
+# StaticSpaHandler.ts — không còn image/service "web" nginx riêng). Dùng image đã publish
 # sẵn thay vì `build: .` — tránh build lại cục bộ (máy build ít RAM từng bị OOM, xem
 # Dockerfile). Muốn build lại từ source: đổi `image:` thành `build: .` (dùng target
 # mặc định "runtime" của Dockerfile).
 #
-# Service "web": SPA tĩnh cho trình duyệt (Phase 3 trong plan), build từ stage "web"
-# của cùng Dockerfile (nginx phục vụ /app/dist).
+# Truy cập UI: http://localhost:9900/ — API: http://localhost:9900/api/*
 services:
   api:
     image: ghcr.io/nguyenquy0710/zalo-crm:26.8.5-manual
     ports:
-      - "9900:9900"   # HttpRelayService: REST + Socket.IO
+      - "9900:9900"   # HttpRelayService: REST + Socket.IO + Web UI
       - "9888:9888"   # IntegrationRegistry webhook
       - "9889:9889"   # WebhookGatewayService
     volumes:
@@ -19,19 +19,6 @@ services:
       # (đổi khoá = không giải mã lại được secret cũ đã lưu). Ví dụ tạo: openssl rand -hex 32
       # - ZALOCRM_SECRET_KEY=${ZALOCRM_SECRET_KEY:?Cần set ZALOCRM_SECRET_KEY (vd: openssl rand -hex 32)}
       - ZALOCRM_SECRET_KEY=8f508251a5fe3ce7bc1832c115d0b40babbe4433fc2ca6e745b2669edd099db7
-    restart: unless-stopped
-
-  # Phase 3: SPA tĩnh phục vụ trình duyệt. Không proxy /api hay /socket.io sang
-  # "zalo-crm" ở trên — người dùng tự nhập "Địa chỉ máy chủ" (Boss URL) ở màn đăng
-  # nhập web (vd http://localhost:9900), CORS đã mở "*" ở HttpRelayService nên gọi
-  # cross-origin thẳng từ đây là đủ, không cần reverse proxy chung origin.
-  web:
-    build:
-      context: .
-      target: web
-    image: ghcr.io/nguyenquy0710/zalo-crm-web:26.8.5-manual
-    ports:
-      - "8080:80"
     restart: unless-stopped
 
 volumes:

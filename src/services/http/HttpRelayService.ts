@@ -14,6 +14,14 @@ import { handleMediaRequest as handleMediaFileServe } from './handlers/MediaHand
 import { libraryHandlers } from './handlers/LibraryHandler';
 import FileStorageService from '../file/FileStorageService';
 import openapiSpec from './openapi/openapiSpec';
+import { handleStaticSpaRequest } from './handlers/StaticSpaHandler';
+
+// [nqdev] dist/ (bundle renderer React) nằm cạnh dist-electron/ ở gốc app (xem Dockerfile
+// stage runtime và electron-builder "files") - __dirname lúc runtime là
+// .../dist-electron/src/services/http, nên lùi 4 cấp là ra gốc app rồi vào "dist".
+// Dùng __dirname thay vì process.cwd() để đúng cả khi chạy trong app.asar (desktop)
+// lẫn Docker (WORKDIR /app).
+const RENDERER_DIST_DIR = path.join(__dirname, '../../../../dist');
 
 interface RegisteredEmployee {
     employee_id: string;
@@ -536,7 +544,9 @@ class HttpRelayService {
         }
 
         // ── Healthcheck ───────────────────────────────────────────────
-        if (req.method === 'GET' && (url === '/api/health' || url === '/')) {
+        // [nqdev] Bỏ "/" khỏi route này - "/" giờ serve SPA (dist/index.html), xem
+        // static SPA fallback ở cuối handleHttpRequest. Dùng /api/health để healthcheck.
+        if (req.method === 'GET' && url === '/api/health') {
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ status: 'ok', relay: this.running, port: this.port }));
             return;
@@ -585,6 +595,13 @@ class HttpRelayService {
         }
         if (req.method === 'POST' && url.startsWith('/api/library/')) {
             return this.handleRestApi(req, res);
+        }
+
+        // [nqdev] SPA fallback - mọi GET không khớp /api/* nào ở trên (kể cả "/") thì thử
+        // serve dist/ (renderer bundle) trước khi trả 404. Gộp web+api vào 1 image/container
+        // thay vì tách riêng nginx - xem RENDERER_DIST_DIR ở đầu file.
+        if (req.method === 'GET' && !url.startsWith('/api/')) {
+            if (handleStaticSpaRequest(req, res, RENDERER_DIST_DIR)) return;
         }
 
         res.writeHead(404, { 'Content-Type': 'application/json' });

@@ -40,24 +40,16 @@ RUN NODE_ENV=production BUILD_TARGET=production npx vite build
 # kích thước node_modules copy sang stage runtime (electron binary một mình đã ~200MB).
 RUN npm prune --omit=dev
 
-# ─── Stage 2: web (SPA tĩnh cho trình duyệt, Phase 3 của plan) ────────────────
-# Chỉ đóng gói lại /app/dist (đã build sẵn ở stage builder) bằng nginx — KHÔNG
-# proxy /api hay /socket.io sang backend: WebLoginScreen bắt người dùng tự nhập
-# "Địa chỉ máy chủ" (Boss URL) lúc đăng nhập, và HttpRelayService đã set CORS
-# Access-Control-Allow-Origin: * nên gọi cross-origin thẳng từ đây là đủ.
-FROM nginx:alpine AS web
-COPY --from=builder /app/dist /usr/share/nginx/html
-COPY docker/nginx-web.conf /etc/nginx/conf.d/default.conf
-EXPOSE 80
-
-# ─── Stage 3: runtime (backend headless) ──────────────────────────────────────
+# ─── Stage 2: runtime (backend + web UI gộp chung 1 image) ────────────────────
+# [nqdev] Trước đây tách riêng stage "web" (nginx phục vụ SPA tĩnh) + stage "runtime"
+# (backend) thành 2 image publish riêng. Gộp lại 1 image duy nhất "zalo-crm": copy thêm
+# /app/dist (renderer bundle) vào đây, HttpRelayService.ts tự serve SPA qua
+# StaticSpaHandler.ts (route "/") thay vì cần nginx riêng — đơn giản hoá deploy (1 container,
+# 1 port) dù image có to hơn một chút so với khi tách riêng.
 FROM node:22-bookworm-slim AS runtime
 WORKDIR /app
 
-# KHÔNG copy /app/dist (bundle renderer React) sang đây — chỉ electron/main.ts
-# (bản desktop, mainWindow.loadFile('../../dist/index.html')) cần nó; electron/server.ts
-# headless không load bất kỳ file HTML nào. Bundle đó chỉ dùng cho stage "web" riêng
-# (image nginx nhỏ gọn) nên bỏ khỏi runtime giúp giảm size image backend.
+COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist-electron ./dist-electron
 COPY --from=builder /app/package.json ./package.json

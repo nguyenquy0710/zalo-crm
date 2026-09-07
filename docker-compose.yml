@@ -3,9 +3,11 @@
 # -----------------------------------------
 # GitHub: https://github.com/nguyenquy0710/zalo-crm
 #   https://github.com/nguyenquy0710/zalo-crm/pkgs/container/zalo-crm
-#   https://github.com/nguyenquy0710/zalo-crm/pkgs/container/zalo-crm-web
 # Documentation: https://deplaoapp.com/
 # -----------------------------------------
+# [nqdev] 1 image duy nhất "zalo-crm" gồm cả backend (REST + Socket.IO, port 9900) và web UI
+# (SPA serve trực tiếp từ Node, cùng port) — không còn image "zalo-crm-web"/nginx riêng.
+# Truy cập UI: http://<host>:10030/ — API: http://<host>:10030/api/*
 # START: docker-compose up -d --build --force-recreate --remove-orphans
 # STOP: docker-compose down -v --remove-orphans
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -33,43 +35,6 @@ services:
     #  - n8n_redis
     volumes:
       - ./data/zalo-crm:/data/.config/ZaloCRM
-    dns:
-      - 1.1.1.1
-      - 1.0.0.1
-      - 8.8.8.8
-      - 8.8.4.4
-    extra_hosts:
-      - "host.docker.internal:host-gateway" # Để kết nối đến localhost của host từ container
-      - "minipc-quyit:192.168.1.200"
-    ulimits:
-      nproc: 65536 # Giới hạn số lượng tiến trình con mà container có thể tạo ra
-      nofile: # Giới hạn số lượng file mà container có thể mở cùng lúc
-        soft: 102400
-        hard: 102400
-    deploy:
-      resources:
-        limits:
-          cpus: "0.50" # Giới hạn 80% CPU
-          memory: "1G" # Giới hạn 3.2GB RAM (80% của 4GB)
-        reservations:
-          memory: "256M" # Đảm bảo container có ít nhất 256MB RAM
-
-  zalo-crm-web-10031:
-    image: ghcr.io/nguyenquy0710/zalo-crm-web:26.8.8-manual
-    container_name: zalo-crm-web-10031
-    restart: unless-stopped
-    # network_mode: host
-    ports:
-      - "10031:80"
-    environment:
-      - TZ=Asia/Ho_Chi_Minh
-    env_file:
-      - .env
-    #depends_on:
-    #  - n8n_db
-    #  - n8n_redis
-    # volumes:
-    #   - ./data/zalo-crm:/data/.config/ZaloCRM
     dns:
       - 1.1.1.1
       - 1.0.0.1
