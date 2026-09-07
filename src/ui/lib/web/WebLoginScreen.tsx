@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import RestQueryService from '../../../services/http/RestQueryService';
 import { useEmployeeStore } from '../../store/employeeStore';
 import { connectWebEventBus } from './webEventBus';
+import { setWebWorkspaceSnapshotCache } from './electronApiWebShim';
 
 /**
  * WebLoginScreen — màn hình đăng nhập cho bản web (trình duyệt, không phải Electron).
@@ -58,11 +59,18 @@ export default function WebLoginScreen({ onLoggedIn }: Props) {
 
       const token = loginRes.token || loginRes.data?.token;
       const employee = loginRes.employee || loginRes.data?.employee;
+      const snapshot = loginRes.snapshot || loginRes.data?.snapshot;
       if (!token || !employee) {
         setError('Phản hồi từ máy chủ không hợp lệ');
         setConnecting(false);
         return;
       }
+
+      // [nqdev] Lưu lại snapshot (accountsData/employeesData/erpRole...) để
+      // electronApiWebShim's workspace.getActive() dựng "workspace mặc định" đầy đủ ngay khi
+      // App.tsx mount, thay vì phải chờ các round-trip REST riêng lẻ - xem
+      // buildWebWorkspace() trong electronApiWebShim.ts.
+      setWebWorkspaceSnapshotCache(snapshot);
 
       RestQueryService.getInstance().init(bossUrl.trim(), token);
       RestQueryService.getInstance().setOnStatusChange((connected, latency) => {

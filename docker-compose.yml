@@ -8,13 +8,14 @@
 # [nqdev] 1 image duy nhất "zalo-crm" gồm cả backend (REST + Socket.IO, port 9900) và web UI
 # (SPA serve trực tiếp từ Node, cùng port) — không còn image "zalo-crm-web"/nginx riêng.
 # Truy cập UI: http://<host>:10030/ — API: http://<host>:10030/api/*
+# -----------------------------------------
 # START: docker-compose up -d --build --force-recreate --remove-orphans
 # STOP: docker-compose down -v --remove-orphans
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 services:
   zalo-crm-10030:
-    image: ghcr.io/nguyenquy0710/zalo-crm:26.8.9-manual
+    image: ghcr.io/nguyenquy0710/zalo-crm:26.8.11-manual
     container_name: zalo-crm-api-10030
     restart: unless-stopped
     # network_mode: host

@@ -16,9 +16,55 @@
 import type { TelegramForumTopicContext } from '../../../models/telegram';
 import RestQueryService from '../../../services/http/RestQueryService';
 import { on, removeAllListeners, connectWebEventBus, disconnectWebEventBus } from './webEventBus';
+import { useEmployeeStore } from '../../store/employeeStore';
 
 function proxyAction(channel: string, params?: any): Promise<any> {
   return RestQueryService.getInstance().proxyAction(channel, params);
+}
+
+// [nqdev] Phần snapshot (accountsData/employeesData/erpRole...) mà POST /api/auth/login trả về
+// nhưng WebLoginScreen.tsx trước đây bỏ qua - App.tsx's "restore employee mode based on active
+// workspace" đọc các field cachedXxx này từ object workspace (xem WorkspaceInfo trong
+// store/workspaceStore.ts) để khôi phục permissions/accounts/employees ngay khi mount, không
+// cần đợi các round-trip REST riêng lẻ. Chỉ giữ trong bộ nhớ (không localStorage) - mất khi
+// F5, không sao vì WebLoginScreen chạy lại và set lại ngay từ đầu.
+let webWorkspaceSnapshotCache: {
+  erpRole?: string;
+  erpExtraJson?: string;
+  employeesData?: any[];
+  accountsData?: any[];
+} = {};
+
+export function setWebWorkspaceSnapshotCache(snapshot: typeof webWorkspaceSnapshotCache | null | undefined): void {
+  webWorkspaceSnapshotCache = snapshot || {};
+}
+
+/**
+ * "Workspace" ảo duy nhất của tab trình duyệt - dựng từ employeeStore (WebLoginScreen.tsx set
+ * ngay sau khi đăng nhập thành công) + webWorkspaceSnapshotCache ở trên. Không có khái niệm
+ * multi-workspace trên web (1 tab = 1 kết nối tới đúng 1 Boss), nên đây luôn là workspace
+ * "mặc định" duy nhất — xem workspace.getActive()/list() bên dưới.
+ */
+function buildWebWorkspace() {
+  const emp = useEmployeeStore.getState();
+  return {
+    id: 'web',
+    name: emp.currentEmployee?.display_name || 'Web',
+    type: 'remote' as const,
+    createdAt: Date.now(),
+    bossUrl: emp.bossUrl,
+    token: emp.token,
+    employeeId: emp.currentEmployee?.employee_id,
+    employeeName: emp.currentEmployee?.display_name,
+    employeeUsername: emp.currentEmployee?.username,
+    autoConnect: true,
+    cachedPermissions: emp.currentEmployee?.permissions || [],
+    cachedAssignedAccounts: emp.assignedAccounts,
+    cachedErpRole: webWorkspaceSnapshotCache.erpRole,
+    cachedErpExtraJson: webWorkspaceSnapshotCache.erpExtraJson,
+    cachedEmployeesData: webWorkspaceSnapshotCache.employeesData,
+    cachedAccountsData: webWorkspaceSnapshotCache.accountsData,
+  };
 }
 
 export const electronApiWebShim = {
@@ -471,17 +517,23 @@ export const electronApiWebShim = {
   // local, đang active workspace nào...) — khái niệm desktop-only, không áp dụng cho 1 tab trình
   // duyệt kết nối tới đúng 1 Boss. QUAN TRỌNG: HttpRelayService.channelToModule() hiện KHÔNG kiểm
   // tra quyền cho channel "workspace:*" (chỉ check zalo/crm/workflow/integration/ai) — proxy thẳng
-  // các hàm ghi (create/update/delete/switch/connectRemote/disconnectRemote) lên Boss sẽ cho phép
-  // BẤT KỲ employee nào đổi/xoá workspace của chính Boss. Vô hiệu hoá toàn bộ namespace này ở web
-  // shim để không mở thêm đường khai thác lỗ hổng đó (lỗ hổng gốc nằm ở server, cần fix riêng).
+  // các hàm GHI (create/update/delete/switch/connectRemote/disconnectRemote) lên Boss sẽ cho phép
+  // BẤT KỲ employee nào đổi/xoá workspace của chính Boss, nên các hàm đó vẫn bị vô hiệu hoá.
+  //
+  // list()/getActive() là ngoại lệ: đây là 2 hàm ĐỌC-CỤC-BỘ (không proxy lên Boss, xem
+  // buildWebWorkspace() ở đầu file) nên không mở lỗ hổng gì — và App.tsx dựa vào
+  // `activeWs.type === 'remote'` ở HÀNG LOẠT chỗ để quyết định có gọi Zalo trực tiếp hay dùng
+  // REST, có skip healthcheck cục bộ hay không, v.v. Trả lỗi cứng như cũ khiến mọi nhánh đó hiểu
+  // nhầm đang chạy desktop/Boss cục bộ. Luôn trả về đúng 1 "workspace mặc định" phản ánh
+  // employeeStore hiện tại (đã được WebLoginScreen.tsx set ngay sau đăng nhập).
   workspace: {
-    list:                 async () => ({ success: false, error: 'Không áp dụng trên bản web' }),
-    getActive:            async () => ({ success: false, error: 'Không áp dụng trên bản web' }),
+    list:                 async () => ({ success: true, workspaces: [buildWebWorkspace()] }),
+    getActive:            async () => ({ success: true, workspace: buildWebWorkspace() }),
     create:               async (_params: any) => ({ success: false, error: 'Không áp dụng trên bản web' }),
     update:               async (_id: string, _updates: any) => ({ success: false, error: 'Không áp dụng trên bản web' }),
     delete:               async (_id: string) => ({ success: false, error: 'Không áp dụng trên bản web' }),
     switch:               async (_id: string) => ({ success: false, error: 'Không áp dụng trên bản web' }),
-    isMulti:              async () => ({ success: false, isMulti: false }),
+    isMulti:              async () => ({ success: true, isMulti: false }),
     getDbPath:            async (_id: string) => ({ success: false, error: 'Không áp dụng trên bản web' }),
     connectRemote:        async (_id: string, _bossUrl: string, _token: string) =>
                             ({ success: false, error: 'Không áp dụng trên bản web' }),
