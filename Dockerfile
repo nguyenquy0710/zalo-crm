@@ -64,8 +64,10 @@ ENV HOME=/data \
 RUN mkdir -p /data && chmod 777 /data
 VOLUME ["/data"]
 
-# 9900: HttpRelayService (REST + Socket.IO Boss<->Employee/web)
+# 9900: HttpRelayService (REST + Socket.IO Boss<->Employee/web) — port chính, luôn bind.
 # 9888: IntegrationRegistry webhook, 9889: WebhookGatewayService (workflow webhook)
-EXPOSE 9900 9888 9889
+# 80: listener thứ 2 tuỳ chọn, CHỈ bind khi có env ZALOCRM_WEB_PORT=80 (xem HttpRelayService.ts
+# startWebPortListener) — cùng router với 9900, chỉ để giữ nguyên convention "web ở port 80".
+EXPOSE 9900 9888 9889 80
 
 ENTRYPOINT ["node", "--require", "/app/headless-shim/resolveElectronShim.js", "dist-electron/electron/server.js"]
