@@ -7,6 +7,8 @@ import FacebookConnectionManager from '../../src/utils/FacebookConnectionManager
 import EventBroadcaster from '../../src/services/event/EventBroadcaster';
 import Logger from '../../src/utils/Logger';
 import ZaloLoginHelper from '../../src/utils/ZaloLoginHelper';
+import WorkspaceManager from '../../src/utils/WorkspaceManager';
+import HttpConnectionManager from '../../src/services/http/HttpConnectionManager';
 import * as TelegramUserListener from '../../src/services/telegram/TelegramUserListener';
 import * as TelegramBotChannelService from '../../src/services/telegram/TelegramBotChannelService';
 function postLoginSetup(_zaloId: string, _mainWindow: BrowserWindow | null, _name?: string, _phone?: string) {
@@ -481,7 +483,23 @@ export function registerLoginIpc(mainWindow: BrowserWindow | null) {
 
     // ─── Tải tin nhắn cũ của phiên đăng nhập (requestOldMessages) ────────
     // Gọi listener.requestOldMessages cho cả User và Group threads
-    ipcMain.handle('login:requestOldMessages', async (_event, { zaloId }) => {
+    // [nqdev] Thêm nhánh proxy sang Boss khi đang chạy ở desktop Employee mode (workspace
+    // active type 'remote') - trước đây handler này gọi thẳng ConnectionManager cục bộ nên
+    // luôn trả "Tài khoản không online" trên máy Employee (session Zalo thật nằm ở Boss),
+    // khác với các channel "zalo:*" (đi qua wrap() của zaloIpc.ts, đã tự proxy đúng). Theo
+    // đúng pattern của wrap(): check !_fromRelay để tránh proxy lặp khi chính Boss đang thực
+    // thi hộ 1 employee từ xa qua /api/proxy/action (HttpRelayService tự set _fromRelay=true).
+    ipcMain.handle('login:requestOldMessages', async (_event, params: { zaloId: string; _fromRelay?: boolean }) => {
+        const { zaloId, _fromRelay } = params;
+        const activeWs = WorkspaceManager.getInstance().getActiveWorkspace();
+        if (activeWs?.type === 'remote' && !_fromRelay) {
+            try {
+                return await HttpConnectionManager.getInstance().proxyAction(activeWs.id, 'login:requestOldMessages', { zaloId });
+            } catch (error: any) {
+                Logger.error(`[loginIpc] requestOldMessages proxy error: ${error.message}`);
+                return { success: false, error: error.message };
+            }
+        }
         try {
             const conn = ConnectionManager.getConnection(zaloId);
             if (!conn || !conn.connected) {

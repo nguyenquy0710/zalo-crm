@@ -45,6 +45,7 @@ export interface ChannelCapability {
   supportsBlock: boolean;        // Chặn user
   supportsReport: boolean;       // Báo xấu
   supportsRemoveFriend: boolean; // Xoá bạn
+  supportsAccountHistorySync: boolean; // Kích hoạt lại đồng bộ tin nhắn cũ TOÀN TÀI KHOẢN (Zalo: requestOldMessages) — không scope theo từng hội thoại 1-1 (giới hạn zca-js)
 
   // ─── Quản lý nhóm ──────────────────────────────────────────
   supportsGroupRename: boolean;
@@ -54,6 +55,7 @@ export interface ChannelCapability {
   supportsGroupAdmin: boolean;
   supportsGroupBoard: boolean;
   supportsGroupLock: boolean;
+  supportsGroupHistorySync: boolean; // Đồng bộ lịch sử tin nhắn cũ theo từng nhóm (Zalo: api.getGroupChatHistory)
 
   // ─── CRM & Social ──────────────────────────────────────────
   supportsFriendRequest: boolean;
@@ -120,6 +122,7 @@ export const CHANNEL_CONFIG: Record<Channel, ChannelCapability> = {
     supportsBlock: true,
     supportsReport: true,
     supportsRemoveFriend: true,
+    supportsAccountHistorySync: true,
 
     supportsGroupRename: true,
     supportsGroupEmoji: true,
@@ -128,6 +131,7 @@ export const CHANNEL_CONFIG: Record<Channel, ChannelCapability> = {
     supportsGroupAdmin: true,
     supportsGroupBoard: true,
     supportsGroupLock: true,
+    supportsGroupHistorySync: true,
 
     supportsFriendRequest: true,
     supportsLabel: true,
@@ -186,6 +190,7 @@ export const CHANNEL_CONFIG: Record<Channel, ChannelCapability> = {
     supportsBlock: true,
     supportsReport: false,
     supportsRemoveFriend: false,
+    supportsAccountHistorySync: false,
 
     supportsGroupRename: true,
     supportsGroupEmoji: true,
@@ -194,6 +199,7 @@ export const CHANNEL_CONFIG: Record<Channel, ChannelCapability> = {
     supportsGroupAdmin: true,
     supportsGroupBoard: false,
     supportsGroupLock: false,
+    supportsGroupHistorySync: false,
 
     supportsFriendRequest: false,
     supportsLabel: false,
@@ -254,6 +260,7 @@ export const CHANNEL_CONFIG: Record<Channel, ChannelCapability> = {
     supportsBlock: false,            // Bot can't block users
     supportsReport: false,
     supportsRemoveFriend: false,
+    supportsAccountHistorySync: false,
 
     supportsGroupRename: true,       // Bot API: setChatTitle
     supportsGroupEmoji: false,
@@ -262,6 +269,7 @@ export const CHANNEL_CONFIG: Record<Channel, ChannelCapability> = {
     supportsGroupAdmin: true,        // Bot API: promoteChatMember
     supportsGroupBoard: false,
     supportsGroupLock: false,
+    supportsGroupHistorySync: false,
 
     supportsFriendRequest: false,
     supportsLabel: false,
@@ -324,6 +332,7 @@ export const CHANNEL_CONFIG: Record<Channel, ChannelCapability> = {
     supportsBlock: true,             // MTProto: contacts.Block/Unblock
     supportsReport: false,
     supportsRemoveFriend: false,
+    supportsAccountHistorySync: false,
 
     supportsGroupRename: true,
     supportsGroupEmoji: false,
@@ -332,6 +341,7 @@ export const CHANNEL_CONFIG: Record<Channel, ChannelCapability> = {
     supportsGroupAdmin: true,
     supportsGroupBoard: true,        // MTProto: Telegram Topics/forum mode
     supportsGroupLock: false,
+    supportsGroupHistorySync: false,
 
     supportsFriendRequest: false,
     supportsLabel: false,

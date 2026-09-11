@@ -45,6 +45,12 @@ export default function ChatHeader() {
   const [editLabelsOpen, setEditLabelsOpen] = useState(false);
   const [aliasRefreshing, setAliasRefreshing] = useState(false);
   const [refreshingFBInfo, setRefreshingFBInfo] = useState(false);
+  const [syncingGroupHistory, setSyncingGroupHistory] = useState(false);
+  const [syncingAccountHistory, setSyncingAccountHistory] = useState(false);
+  // [nqdev] Dialog cho phép cấu hình số lượng tin nhắn đồng bộ mỗi lần (mặc định 500) -
+  // theo yêu cầu khách hàng (xem plans/2026-09-11-zalo-old-message-sync-planning.md, mục 6)
+  const [groupHistorySyncOpen, setGroupHistorySyncOpen] = useState(false);
+  const [groupHistorySyncCount, setGroupHistorySyncCount] = useState('500');
   const [refreshingTelegram, setRefreshingTelegram] = useState(false);
   const [aliasEditOpen, setAliasEditOpen] = useState(false);
   const [aliasEditPos, setAliasEditPos] = useState<{ x: number; y: number } | null>(null);
@@ -60,6 +66,15 @@ export default function ChatHeader() {
   const [groupNameEditPos, setGroupNameEditPos] = useState<{ x: number; y: number } | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // [nqdev] Cooldown chống spam gọi API Zalo cho 2 nút đồng bộ tin nhắn cũ bên dưới -
+  // mỗi lần bấm ghi timestamp, bấm lại trong lúc cooldown chỉ hiện toast nhắc chờ thay vì
+  // gọi API lần nữa. Group: cooldown theo TỪNG hội thoại (groupId -> timestamp), vì mỗi
+  // nhóm gọi API riêng. Account: cooldown theo TỪNG tài khoản (zaloId -> timestamp), vì
+  // requestOldMessages tác động toàn tài khoản bất kể đang mở hội thoại 1-1 nào.
+  const groupHistoryCooldownRef = useRef<Map<string, number>>(new Map());
+  const accountHistoryCooldownRef = useRef<Map<string, number>>(new Map());
+  const HISTORY_SYNC_COOLDOWN_MS = 30_000;
 
   // Local labels for the active thread
   const [headerLocalLabels, setHeaderLocalLabels] = useState<HeaderLocalLabel[]>([]);
@@ -578,6 +593,86 @@ export default function ChatHeader() {
     }
   };
 
+  /**
+   * Đồng bộ lịch sử tin nhắn cũ cho hội thoại NHÓM đang mở (zca-js chỉ hỗ trợ
+   * getGroupChatHistory theo từng nhóm cụ thể — không có API tương đương cho 1-1,
+   * xem plans/2026-09-11-zalo-old-message-sync-planning.md). Backend
+   * (electron/ipc/zaloIpc.ts's zalo:getGroupChatHistory) đã tự dedup + lưu DB +
+   * bắn event silent, nên ở đây chỉ cần gọi và hiển thị kết quả. `requestedCount`
+   * do người dùng nhập ở dialog (mặc định 500) — theo yêu cầu khách hàng cho phép
+   * cấu hình thay vì cố định.
+   */
+  const handleSyncGroupHistory = async (requestedCount: number) => {
+    if (!activeAccountId || !activeThreadId || syncingGroupHistory) return;
+    const lastRun = groupHistoryCooldownRef.current.get(activeThreadId) || 0;
+    const remainingMs = HISTORY_SYNC_COOLDOWN_MS - (Date.now() - lastRun);
+    if (remainingMs > 0) {
+      showNotification(`Vui lòng đợi ${Math.ceil(remainingMs / 1000)}s trước khi đồng bộ lại`, 'info');
+      return;
+    }
+    const acc = getActiveAccount();
+    if (!acc) return;
+    const count = Number.isFinite(requestedCount) && requestedCount > 0 ? Math.min(requestedCount, 5000) : 500;
+    groupHistoryCooldownRef.current.set(activeThreadId, Date.now());
+    setSyncingGroupHistory(true);
+    try {
+      const auth = buildZaloAuth(acc, activeAccountId);
+      const res = await ipc.zalo?.getGroupChatHistory({ auth, groupId: activeThreadId, count });
+      const historyError = res?.response?.error;
+      if (res?.success && !historyError) {
+        const syncedCount = res.response?.groupMsgsCount ?? 0;
+        showNotification(
+          syncedCount > 0 ? `Đã đồng bộ ${syncedCount} tin nhắn cũ` : 'Không có tin nhắn cũ mới để đồng bộ',
+          'success'
+        );
+      } else {
+        showNotification(historyError || res?.error || 'Đồng bộ tin nhắn cũ thất bại', 'error');
+      }
+    } catch (e: any) {
+      showNotification('Lỗi: ' + (e.message || 'Không thể đồng bộ tin nhắn cũ'), 'error');
+    } finally {
+      setGroupHistorySyncOpen(false);
+      setSyncingGroupHistory(false);
+    }
+  };
+
+  /**
+   * Đồng bộ lịch sử tin nhắn cũ cho hội thoại 1-1 — zca-js KHÔNG có API lấy lịch sử
+   * theo từng hội thoại 1-1 cụ thể (chỉ có cho nhóm, xem handleSyncGroupHistory ở trên).
+   * Cơ chế duy nhất là requestOldMessages(ThreadType.User, null) - yêu cầu Zalo đẩy lại
+   * tin nhắn cũ cho TOÀN BỘ tài khoản qua listener (không scope theo 1 hội thoại, không
+   * có tổng số/tiến độ). Đây là logic đã có sẵn ở TopBar.tsx, tái dùng nguyên vẹn ở đây -
+   * chỉ khác là hiển thị thêm 1 affordance ngay trong hội thoại đang mở, kèm copy nêu rõ
+   * phạm vi thật (toàn tài khoản) để tránh người dùng hiểu nhầm là chỉ đồng bộ riêng
+   * hội thoại này (xem plans/2026-09-11-zalo-old-message-sync-planning.md, Module 2).
+   */
+  const handleSyncAccountHistory = async () => {
+    if (!activeAccountId || syncingAccountHistory) return;
+    const lastRun = accountHistoryCooldownRef.current.get(activeAccountId) || 0;
+    const remainingMs = HISTORY_SYNC_COOLDOWN_MS - (Date.now() - lastRun);
+    if (remainingMs > 0) {
+      showNotification(`Vui lòng đợi ${Math.ceil(remainingMs / 1000)}s trước khi đồng bộ lại`, 'info');
+      return;
+    }
+    accountHistoryCooldownRef.current.set(activeAccountId, Date.now());
+    setSyncingAccountHistory(true);
+    try {
+      const res = await ipc.login?.requestOldMessages(activeAccountId);
+      if (res?.success) {
+        showNotification(
+          'Đang đồng bộ tin nhắn cũ cho TOÀN BỘ tài khoản (Zalo không hỗ trợ đồng bộ riêng từng hội thoại 1-1) — tin nhắn sẽ xuất hiện dần.',
+          'info'
+        );
+      } else {
+        showNotification(res?.error || 'Không thể đồng bộ tin nhắn cũ', 'error');
+      }
+    } catch (e: any) {
+      showNotification('Lỗi: ' + (e.message || 'Không thể đồng bộ tin nhắn cũ'), 'error');
+    } finally {
+      setSyncingAccountHistory(false);
+    }
+  };
+
   const channelCap = useChannelCapability();
 
   if (!activeThreadId || !activeAccountId) return null;
@@ -883,6 +978,35 @@ export default function ChatHeader() {
               </svg>
             </button>
           )}
+          {/* Đồng bộ tin nhắn cũ - chỉ cho nhóm Zalo (zca-js chỉ hỗ trợ getGroupChatHistory theo nhóm) */}
+          {isGroup && channelCap.supportsGroupHistorySync && (
+            <button
+              title="Đồng bộ tin nhắn cũ"
+              onClick={() => { setGroupHistorySyncCount('500'); setGroupHistorySyncOpen(true); }}
+              disabled={syncingGroupHistory}
+              className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-gray-700 text-gray-400 hover:text-white disabled:opacity-50"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                className={syncingGroupHistory ? 'animate-spin' : ''}>
+                <path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/>
+              </svg>
+            </button>
+          )}
+          {/* Đồng bộ tin nhắn cũ - hội thoại 1-1: Zalo không hỗ trợ scope theo từng hội thoại,
+              nên bấm sẽ kích hoạt lại đồng bộ TOÀN TÀI KHOẢN (giống nút ở TopBar.tsx) */}
+          {!isGroup && channelCap.supportsAccountHistorySync && (
+            <button
+              title="Đồng bộ tin nhắn cũ (toàn bộ tài khoản)"
+              onClick={handleSyncAccountHistory}
+              disabled={syncingAccountHistory}
+              className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-gray-700 text-gray-400 hover:text-white disabled:opacity-50"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                className={syncingAccountHistory ? 'animate-spin' : ''}>
+                <path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/>
+              </svg>
+            </button>
+          )}
           <button
             title={showAIQuickPanel ? 'Đóng trợ lý AI' : 'Trợ lý AI'}
             onClick={toggleAIQuickPanel}
@@ -1083,6 +1207,39 @@ export default function ChatHeader() {
               <button onClick={handleTgDownload} disabled={tgDownloading || !tgDownloadCount}
                 className="flex-1 py-2 rounded-xl bg-blue-600 text-white text-sm hover:bg-blue-700 disabled:opacity-40 flex items-center justify-center gap-1.5">
                 {tgDownloading ? <><Spinner size={3} /> Đang tải...</> : 'Tải'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Đồng bộ tin nhắn cũ (nhóm) - cho phép cấu hình số lượng, mặc định 500 */}
+      {groupHistorySyncOpen && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+          onClick={() => { if (!syncingGroupHistory) setGroupHistorySyncOpen(false); }}>
+          <div className="bg-gray-800 border border-gray-600 rounded-2xl w-80 p-5 shadow-2xl"
+            onClick={e => e.stopPropagation()}>
+            <h3 className="font-semibold text-white mb-1">Đồng bộ tin nhắn cũ</h3>
+            <p className="text-xs text-gray-400 mb-3">Nhập số lượng tin nhắn cũ muốn đồng bộ cho nhóm này (mặc định 500, tối đa 5.000).</p>
+            <input
+              type="number"
+              value={groupHistorySyncCount}
+              onChange={e => setGroupHistorySyncCount(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !syncingGroupHistory) handleSyncGroupHistory(parseInt(groupHistorySyncCount, 10)); }}
+              placeholder="500"
+              min="1"
+              max="5000"
+              disabled={syncingGroupHistory}
+              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 disabled:opacity-50 mb-3"
+            />
+            <div className="flex gap-2">
+              <button onClick={() => setGroupHistorySyncOpen(false)} disabled={syncingGroupHistory}
+                className="flex-1 py-2 rounded-xl bg-gray-700 text-gray-300 text-sm hover:bg-gray-600 disabled:opacity-40">
+                Hủy
+              </button>
+              <button onClick={() => handleSyncGroupHistory(parseInt(groupHistorySyncCount, 10))} disabled={syncingGroupHistory || !groupHistorySyncCount}
+                className="flex-1 py-2 rounded-xl bg-blue-600 text-white text-sm hover:bg-blue-700 disabled:opacity-40 flex items-center justify-center gap-1.5">
+                {syncingGroupHistory ? <><Spinner size={3} /> Đang đồng bộ...</> : 'Đồng bộ'}
               </button>
             </div>
           </div>

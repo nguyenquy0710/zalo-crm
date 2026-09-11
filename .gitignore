@@ -36,4 +36,8 @@ src/bridge-e2ee/meta/
 *.exe
 tmp/
 
+# Playwright test artifacts
 .playwright-mcp/*
+
+# Docs
+docs/prompt.txt
